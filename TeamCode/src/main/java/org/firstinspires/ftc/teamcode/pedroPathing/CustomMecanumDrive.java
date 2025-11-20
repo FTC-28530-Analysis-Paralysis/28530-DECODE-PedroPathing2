@@ -1,5 +1,7 @@
 package org.firstinspires.ftc.teamcode.pedroPathing;
 
+import static com.pedropathing.math.MathFunctions.findNormalizingScaling;
+
 import com.pedropathing.Drivetrain;
 import com.pedropathing.math.Vector;
 import com.qualcomm.robotcore.hardware.DcMotor;
@@ -46,6 +48,23 @@ public class CustomMecanumDrive extends Drivetrain {
         updateConstants(); // Set motor directions
         setMotorsToFloat();
         breakFollowing();
+
+        // This section defines the physical reality of the drive wheels for the library's math.
+        // The `vectors` array holds the direction of force each wheel exerts when spun forward.
+        Vector standardVector = constants.frontLeftVector.normalize();
+        Vector oppositeVector = new Vector(standardVector.getMagnitude(), 2 * Math.PI - standardVector.getTheta());
+
+        // THE FIX for incorrect strafing:
+        // Your robot's behavior indicates a non-standard drive configuration where the
+        // right-side wheels need their strafe behavior inverted. In the library's vector math,
+        // the way to "flip the negative for strafe" is to swap the force vectors for the right wheels.
+        // This change tells the complex math the truth about how your specific robot hardware behaves.
+        vectors = new Vector[]{
+                standardVector, // Left Front (Standard)
+                oppositeVector, // Left Rear (Standard)
+                standardVector, // Right Front (CHANGED from oppositeVector to fix your robot's strafing)
+                oppositeVector  // Right Rear (CHANGED from standardVector to fix your robot's strafing)
+        };
     }
 
     @Override
@@ -63,48 +82,86 @@ public class CustomMecanumDrive extends Drivetrain {
 
     @Override
     public double[] calculateDrive(Vector correctivePower, Vector headingPower, Vector pathingPower, double robotHeading) {
-        // Combine the input vectors to get a single target translational vector.
-        Vector totalTranslational = pathingPower.plus(correctivePower);
+        // This method is a direct, faithful adaptation of the official PedroPathing Mecanum.java source code.
 
-        // THE FIX for Rotated Driving:
-        // As you diagnosed, the library's vectors are rotated 90 degrees. "Up is right, right is back."
-        // This corrects for that by swapping the components and negating one.
-        double robotForward = -totalTranslational.getXComponent();
-        double robotStrafe = totalTranslational.getYComponent();
+        // --- Step 1: Clamp all incoming power vectors ---
+        if (correctivePower.getMagnitude() > maxPowerScaling) correctivePower.setMagnitude(maxPowerScaling);
+        if (headingPower.getMagnitude() > maxPowerScaling) headingPower.setMagnitude(maxPowerScaling);
+        if (pathingPower.getMagnitude() > maxPowerScaling) pathingPower.setMagnitude(maxPowerScaling);
 
-        // The turn power is taken from the heading vector, and negated to fix the reversal you saw.
-        double turn = -headingPower.getXComponent();
+        double[] wheelPowers = new double[4];
+        Vector[] mecanumVectorsCopy = new Vector[4];
+        Vector[] truePathingVectors = new Vector[2];
 
-        // THE FIX for Strafing:
-        // These are the exact algebraic formulas from your own working `KalispellTeleop`.
-        // This abandons the complex library math and uses the logic you have already proven works on your robot.
-        // This is the simplest way to "switch the strafing values" as you requested.
-        double[] motorPowers = new double[4];
-        motorPowers[0] = robotForward + robotStrafe + turn; // Left Front
-        motorPowers[1] = robotForward - robotStrafe + turn; // Left Rear
-        motorPowers[2] = robotForward + robotStrafe - turn; // Right Front
-        motorPowers[3] = robotForward - robotStrafe - turn; // Right Rear
+        // --- Step 2: Combine all power vectors ---
+        if (correctivePower.getMagnitude() == maxPowerScaling) {
+            truePathingVectors[0] = correctivePower.copy();
+            truePathingVectors[1] = correctivePower.copy();
+        } else {
+            Vector leftSideVector = correctivePower.minus(headingPower);
+            Vector rightSideVector = correctivePower.plus(headingPower);
 
-        return motorPowers;
+            if (leftSideVector.getMagnitude() > maxPowerScaling || rightSideVector.getMagnitude() > maxPowerScaling) {
+                double headingScalingFactor = Math.min(findNormalizingScaling(correctivePower, headingPower, maxPowerScaling), findNormalizingScaling(correctivePower, headingPower.times(-1), maxPowerScaling));
+                truePathingVectors[0] = correctivePower.minus(headingPower.times(headingScalingFactor));
+                truePathingVectors[1] = correctivePower.plus(headingPower.times(headingScalingFactor));
+            } else {
+                Vector leftSideVectorWithPathing = leftSideVector.plus(pathingPower);
+                Vector rightSideVectorWithPathing = rightSideVector.plus(pathingPower);
+
+                if (leftSideVectorWithPathing.getMagnitude() > maxPowerScaling || rightSideVectorWithPathing.getMagnitude() > maxPowerScaling) {
+                    double pathingScalingFactor = Math.min(findNormalizingScaling(leftSideVector, pathingPower, maxPowerScaling), findNormalizingScaling(rightSideVector, pathingPower, maxPowerScaling));
+                    truePathingVectors[0] = leftSideVector.plus(pathingPower.times(pathingScalingFactor));
+                    truePathingVectors[1] = rightSideVector.plus(pathingPower.times(pathingScalingFactor));
+                } else {
+                    truePathingVectors[0] = leftSideVectorWithPathing.copy();
+                    truePathingVectors[1] = rightSideVectorWithPathing.copy();
+                }
+            }
+        }
+
+        // --- Step 3: Scale up the final left and right target vectors ---
+        truePathingVectors[0] = truePathingVectors[0].times(2.0);
+        truePathingVectors[1] = truePathingVectors[1].times(2.0);
+
+        // --- Step 4: Rotate the physical wheel force vectors to match the robot's current heading. ---
+        for (int i = 0; i < mecanumVectorsCopy.length; i++) {
+            mecanumVectorsCopy[i] = vectors[i].copy();
+            mecanumVectorsCopy[i].rotateVector(robotHeading);
+        }
+
+        // --- Step 5: The core of the math. ---
+        wheelPowers[0] = (mecanumVectorsCopy[1].getXComponent() * truePathingVectors[0].getYComponent() - truePathingVectors[0].getXComponent() * mecanumVectorsCopy[1].getYComponent()) / (mecanumVectorsCopy[1].getXComponent() * mecanumVectorsCopy[0].getYComponent() - mecanumVectorsCopy[0].getXComponent() * mecanumVectorsCopy[1].getYComponent());
+        wheelPowers[1] = (mecanumVectorsCopy[0].getXComponent() * truePathingVectors[0].getYComponent() - truePathingVectors[0].getXComponent() * mecanumVectorsCopy[0].getYComponent()) / (mecanumVectorsCopy[0].getXComponent() * mecanumVectorsCopy[1].getYComponent() - mecanumVectorsCopy[1].getXComponent() * mecanumVectorsCopy[0].getYComponent());
+        wheelPowers[2] = (mecanumVectorsCopy[3].getXComponent() * truePathingVectors[1].getYComponent() - truePathingVectors[1].getXComponent() * mecanumVectorsCopy[3].getYComponent()) / (mecanumVectorsCopy[3].getXComponent() * mecanumVectorsCopy[2].getYComponent() - mecanumVectorsCopy[2].getXComponent() * mecanumVectorsCopy[3].getYComponent());
+        wheelPowers[3] = (mecanumVectorsCopy[2].getXComponent() * truePathingVectors[1].getYComponent() - truePathingVectors[1].getXComponent() * mecanumVectorsCopy[2].getYComponent()) / (mecanumVectorsCopy[2].getXComponent() * mecanumVectorsCopy[3].getYComponent() - mecanumVectorsCopy[3].getXComponent() * mecanumVectorsCopy[2].getYComponent());
+
+        // --- Step 6: Apply voltage compensation if enabled. ---
+        if (voltageCompensation) {
+            double voltageNormalized = getVoltageNormalized();
+            for (int i = 0; i < wheelPowers.length; i++) {
+                wheelPowers[i] *= voltageNormalized;
+            }
+        }
+
+        // --- Step 7: Normalize all wheel powers to ensure none exceed the maximum allowed power. ---
+        double wheelPowerMax = 0;
+        for (double power : wheelPowers) {
+            if(Math.abs(power) > wheelPowerMax) wheelPowerMax = Math.abs(power);
+        }
+
+        if (wheelPowerMax > maxPowerScaling) {
+            for (int i = 0; i < wheelPowers.length; i++) {
+                wheelPowers[i] = (wheelPowers[i] / wheelPowerMax) * maxPowerScaling;
+            }
+        }
+
+        return wheelPowers;
     }
 
     @Override
     public void runDrive(double[] drivePowers) {
-        // Normalize the motor powers to ensure they are within the -1.0 to 1.0 range.
-        double max = 1.0;
-        for (double power : drivePowers) {
-            if (Math.abs(power) > max) {
-                max = Math.abs(power);
-            }
-        }
-        if (max > 1) {
-            for (int i = 0; i < drivePowers.length; i++) {
-                drivePowers[i] /= max;
-            }
-        }
-
         for (int i = 0; i < motors.size(); i++) {
-            // Only send a new power command if it's different enough from the previous one.
             if (Math.abs(motors.get(i).getPower() - drivePowers[i]) > motorCachingThreshold) {
                 motors.get(i).setPower(drivePowers[i]);
             }
