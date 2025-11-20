@@ -6,6 +6,8 @@ import com.pedropathing.follower.FollowerConstants;
 import com.pedropathing.ftc.FollowerBuilder;
 import com.pedropathing.ftc.localization.Encoder;
 import com.pedropathing.ftc.localization.constants.PinpointConstants;
+import com.pedropathing.geometry.Pose;
+import com.pedropathing.math.Vector;
 import com.pedropathing.paths.PathConstraints;
 import com.qualcomm.hardware.gobilda.GoBildaPinpointDriver;
 import com.qualcomm.robotcore.hardware.DcMotor;
@@ -25,24 +27,32 @@ public class Constants {
     public static PathConstraints pathConstraints = new PathConstraints(0.99, 100, 1, 1);
 
     public static class CustomDriveConstants {
-        // Motor names in hardware configuration
         public final String LEFT_FRONT_MOTOR_NAME = "leftFrontDrive";
         public final String LEFT_BACK_MOTOR_NAME = "leftBackDrive";
         public final String RIGHT_FRONT_MOTOR_NAME = "rightFrontDrive";
         public final String RIGHT_BACK_MOTOR_NAME = "rightBackDrive";
 
-        // Motor directions that work for your robot
         public final DcMotor.Direction LEFT_FRONT_MOTOR_DIRECTION = DcMotor.Direction.REVERSE;
         public final DcMotor.Direction LEFT_BACK_MOTOR_DIRECTION = DcMotor.Direction.REVERSE;
         public final DcMotor.Direction RIGHT_FRONT_MOTOR_DIRECTION = DcMotor.Direction.FORWARD;
         public final DcMotor.Direction RIGHT_BACK_MOTOR_DIRECTION = DcMotor.Direction.FORWARD;
 
-        // FTC Dashboard measurement from the Follower and Drive Characterization OpModes
         public double X_VELOCITY = 58.291667307455704;
         public double Y_VELOCITY = 58.291667307455704; // Set to X initially, tune if needed
 
-        // Hardware map name for the voltage sensor. "Control Hub" is the default.
         public final String VOLTAGE_SENSOR_NAME = "Control Hub";
+
+        // This is the crucial vector needed for the library's calculations
+        private final double[] convertToPolar = Pose.cartesianToPolar(X_VELOCITY, -Y_VELOCITY);
+        public final Vector frontLeftVector = new Vector(convertToPolar[0], convertToPolar[1]).normalize();
+
+        // Default values from the library, can be tuned if needed
+        public double maxPower = 1.0;
+        public double motorCachingThreshold = 0.01;
+        public boolean useBrakeModeInTeleOp = false;
+        public boolean useVoltageCompensation = false;
+        public double nominalVoltage = 12.0;
+        public double staticFrictionCoefficient = 0.1;
     }
 
     public static CustomDriveConstants customDriveConstants = new CustomDriveConstants();
@@ -59,7 +69,9 @@ public class Constants {
             .forwardPodY(-8.5)
             .strafePodX(2.5)
             .distanceUnit(DistanceUnit.INCH)
-            .hardwareMapName("pinpoint")
+            //.forwardEncoderDirection(Encoder.REVERSE) //TODO: select & run localization test under the localization folder in the tuning OpMode, then move the robot forward. The x coordinate should increase.
+            //.strafeEncoderDirection(Encoder.REVERSE) //TODO: Next move the robot left. The y coordinate should increase. If either of those does not happen, you must reverse the respective encoder (uncomment these lines)
+            .hardwareMapName("pinpoint") //TODO: Correct hardware map name from "pinpoint" to whatever it is (String)
             .encoderResolution(GoBildaPinpointDriver.GoBildaOdometryPods.goBILDA_4_BAR_POD)
             .forwardEncoderDirection(GoBildaPinpointDriver.EncoderDirection.REVERSED)
             .strafeEncoderDirection(GoBildaPinpointDriver.EncoderDirection.FORWARD);

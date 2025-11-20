@@ -24,14 +24,14 @@ public class MecanumHardware {
         imu = hardwareMap.get(IMU.class,"imu");
 
         // Set motor directions
-        rightFrontDrive.setDirection(DcMotor.Direction.FORWARD);
-        rightBackDrive.setDirection(DcMotor.Direction.FORWARD);
         leftFrontDrive.setDirection(DcMotor.Direction.REVERSE);
         leftBackDrive.setDirection(DcMotor.Direction.REVERSE);
+        rightFrontDrive.setDirection(DcMotor.Direction.FORWARD);
+        rightBackDrive.setDirection(DcMotor.Direction.FORWARD);
 
         leftFrontDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        rightFrontDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         leftBackDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        rightFrontDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         rightBackDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
         RevHubOrientationOnRobot RevHubOrientation = new RevHubOrientationOnRobot(
@@ -43,8 +43,8 @@ public class MecanumHardware {
     public void drive(double forward, double strafe, double turn) {
 
         double leftFrontPower = forward + strafe + turn;
-        double rightFrontPower = forward + strafe - turn;
         double leftBackPower = forward - strafe + turn;
+        double rightFrontPower = forward + strafe - turn;
         double rightBackPower = forward - strafe - turn;
 
         leftFrontDrive.setPower(leftFrontPower);

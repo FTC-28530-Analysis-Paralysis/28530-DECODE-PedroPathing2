@@ -12,8 +12,8 @@ public class TeleopManualControls extends OpMode {
     RobotHardwareContainer robot;
     MecanumHardware mecanumHardware;
 
-    private double flywheelRPMSpeed = 4500; // Start at default speed
-    private static final double RPM_ADJUST_RATE = 50; // How much to change speed by per press
+    private double flywheelRPMSpeed = 2400; // Start at default speed
+    private static final double RPM_ADJUST_RATE = 100; // How much to change speed by per press
 
     private boolean dpad_up_pressed = false;
     private boolean dpad_down_pressed = false;
