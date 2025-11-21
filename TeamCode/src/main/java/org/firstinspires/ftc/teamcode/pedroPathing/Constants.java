@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode.pedroPathing;
 
+import com.pedropathing.control.FilteredPIDFCoefficients;
 import com.pedropathing.control.PIDFCoefficients;
 import com.pedropathing.follower.Follower;
 import com.pedropathing.follower.FollowerConstants;
@@ -17,11 +18,12 @@ import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 
 public class Constants {
     public static FollowerConstants followerConstants = new FollowerConstants()
-            .mass(8.25)
-     .forwardZeroPowerAcceleration(-25.9)
-     .lateralZeroPowerAcceleration(-64.46128517815318);
-    // .translationalPIDFCoefficients(new PIDFCoefficients(0.03, 0, 0, 0.015))
-    // .headingPIDFCoefficients(new PIDFCoefficients(0.8, 0, 0, 0.01));
+            .mass(9.35)
+     .forwardZeroPowerAcceleration(-35)
+     .lateralZeroPowerAcceleration(-58)
+    .translationalPIDFCoefficients(new PIDFCoefficients(0.1, 0, 0.01, 0.02))
+    .headingPIDFCoefficients(new PIDFCoefficients(4, 0.03, 1, 0.06))
+    .drivePIDFCoefficients(new FilteredPIDFCoefficients(0, 0, 0, 0, 0));
 
     public static PathConstraints pathConstraints = new PathConstraints(0.99, 100, 1, 1);
 
@@ -36,8 +38,8 @@ public class Constants {
         public final DcMotor.Direction RIGHT_FRONT_MOTOR_DIRECTION = DcMotor.Direction.FORWARD;
         public final DcMotor.Direction RIGHT_BACK_MOTOR_DIRECTION = DcMotor.Direction.FORWARD;
 
-        public double X_VELOCITY = 59.76379634827142;
-        public double Y_VELOCITY = 47.75367220180242; // Set to X initially, tune if needed
+        public double X_VELOCITY = 60.4577684779282;
+        public double Y_VELOCITY = 48.871302326833174; // Set to X initially, tune if needed
 
         public final String VOLTAGE_SENSOR_NAME = "Control Hub";
 
