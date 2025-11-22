@@ -124,7 +124,7 @@ public class ButteAuto_Limelight extends OpMode {
         Pose blueFrontSpikeMiddle = new Pose(24, 90, Math.toRadians(90));
         Pose blueFrontSpikeRight = new Pose(36, 84, Math.toRadians(45));
         Pose blueFrontPark = new Pose(60, 12, Math.toRadians(0)); // Park outside launch zone
-
+    
         // Logic to select correct poses based on configuration
         if (alliance == Alliance.BLUE && startPosition == StartPosition.FRONT) {
             startPose = blueFrontStart;
