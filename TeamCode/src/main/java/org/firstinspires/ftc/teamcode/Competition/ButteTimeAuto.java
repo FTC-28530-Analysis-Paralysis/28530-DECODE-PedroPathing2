@@ -38,11 +38,10 @@ public class ButteTimeAuto extends OpMode{
             telemetry.addData("Status", "Autonomous Running");
             telemetry.update();
 
-            if(runtime.seconds()> 2){
+            if(runtime.seconds()> 10){
                 break;
             }
         }
-        mecanumHardware.stop();
     }
 
     @Override

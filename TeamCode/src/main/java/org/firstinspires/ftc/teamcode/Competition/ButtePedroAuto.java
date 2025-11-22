@@ -53,12 +53,12 @@ public class ButtePedroAuto extends OpMode {
     private Pose RED_FRONT_START = new Pose(88, 9, Math.toRadians(90));
     private Pose RED_BACK_START = new Pose(111, 135, Math.toRadians(270));
 
-    private Pose BLUE_SCORE_POSE = new Pose(60, 84, Math.toRadians(225));
+    private Pose BLUE_SCORE_POSE = new Pose(60, 84, Math.toRadians(135));
     private Pose BLUE_PICKUP_FRONT_SPIKE = new Pose(40, 36, Math.toRadians(0));
     private Pose BLUE_PICKUP_MIDDLE_SPIKE = new Pose(40, 60, Math.toRadians(0));
     private Pose BLUE_PICKUP_BACK_SPIKE = new Pose(40, 84, Math.toRadians(0));
 
-    private Pose RED_SCORE_POSE = new Pose(84, 84, Math.toRadians(225));
+    private Pose RED_SCORE_POSE = new Pose(84, 84, Math.toRadians(45));
     private Pose RED_PICKUP_FRONT_SPIKE = new Pose(40, 36, Math.toRadians(0));
     private Pose RED_PICKUP_MIDDLE_SPIKE = new Pose(40, 60, Math.toRadians(0));
     private Pose RED_PICKUP_BACK_SPIKE = new Pose(40, 84, Math.toRadians(0));
@@ -328,15 +328,16 @@ public class ButtePedroAuto extends OpMode {
                 break;
             case 20: // Wait for shooter to get to speed
                 if (actionTimer.seconds() > 1.0) {
+                    robot.transfer.run();
                     // pushArtifactToShooter();
                     actionTimer.reset();
                     setActionState(21);
                 }
                 break;
             case 21: // Wait for artifact to be shot
-                if (actionTimer.seconds() > 0.5) {
-                    // stopShooter();
-                    // resetServo();
+                if (actionTimer.seconds() > 3) {
+                    robot.launcher.stop();
+                    robot.transfer.stop();
                     setActionState(0);
                 }
                 break;
