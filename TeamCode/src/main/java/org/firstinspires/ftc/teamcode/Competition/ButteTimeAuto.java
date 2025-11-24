@@ -30,28 +30,22 @@ public class ButteTimeAuto extends OpMode{
 
     @Override
     public void start() {
-
-        // Drive forward for 2 seconds
-        while (runtime.seconds() < 2) {
-
-            mecanumHardware.drive(.5, 0, 0);
-            telemetry.addData("Status", "Autonomous Running");
-            telemetry.update();
-
-            if(runtime.seconds()> 10){
-                break;
-            }
-        }
+        runtime.reset();
     }
 
     @Override
     public void loop() {
-        telemetry.addData("Status", "Autonomous Finished");
+        if (runtime.seconds() < 5){
+            mecanumHardware.drive(.5, 0, 0);
+        }
+        telemetry.addData("Status", "Autonomous Running");
         telemetry.update();
     }
 
     @Override
     public void stop() {
+        telemetry.addData("Status", "Autonomous Finished");
+        telemetry.update();
         mecanumHardware.stop();
         transferHardware.stop();
         intakeHardware.stop();
