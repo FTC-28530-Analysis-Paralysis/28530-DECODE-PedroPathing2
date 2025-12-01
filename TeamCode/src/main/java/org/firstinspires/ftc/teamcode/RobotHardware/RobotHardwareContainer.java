@@ -1,18 +1,15 @@
 package org.firstinspires.ftc.teamcode.RobotHardware;
 
-import static org.firstinspires.ftc.robotcore.external.BlocksOpModeCompanion.telemetry;
-
+import com.pedropathing.localization.Localizer;
 import com.qualcomm.robotcore.hardware.HardwareMap;
-
 import org.firstinspires.ftc.robotcore.external.Telemetry;
-import org.firstinspires.ftc.teamcode.RobotHardware.IntakeHardware;
-import org.firstinspires.ftc.teamcode.RobotHardware.LauncherHardware;
-import org.firstinspires.ftc.teamcode.RobotHardware.TransferHardware;
+import org.firstinspires.ftc.teamcode.pedroPathing.CombinedLocalizer;
+import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
+import org.firstinspires.ftc.teamcode.pedroPathing.LimelightAprilTagLocalizer;
+import org.firstinspires.ftc.teamcode.pedroPathing.CustomPinpointLocalizer;
 
 /**
  * This class acts as a container to hold and initialize all the robot's hardware subsystems.
- * By creating an instance of this class in an OpMode, you gain access to all robot
- * mechanisms without having to initialize each one individually.
  */
 public class RobotHardwareContainer {
 
@@ -21,22 +18,37 @@ public class RobotHardwareContainer {
     public final LauncherHardware launcher;
     public final TransferHardware transfer;
     public final LimelightAprilTagLocalizer aprilTag;
+    public final CustomPinpointLocalizer pinpoint;
 
-    /**
-     * The constructor for the RobotHardwareContainer. It initializes all hardware subsystems.
-     * @param hardwareMap The hardwareMap from the OpMode, used to map motor and servo names.
-     */
+    // The ColorDiverter is nullable because it only exists on the competition bot
+    public ColorDiverterHardware colorDiverter;
+
+    // The single, authoritative localizer for the robot
+    public final Localizer localizer;
+
     public RobotHardwareContainer(HardwareMap hardwareMap, Telemetry telemetry) {
-        // Create new instances of each hardware class
+        // Create instances of each hardware class
         intake = new IntakeHardware();
         launcher = new LauncherHardware();
         transfer = new TransferHardware();
+        
+        // Create the two underlying localizers
         aprilTag = new LimelightAprilTagLocalizer();
+        aprilTag.init(hardwareMap, telemetry);
+        pinpoint = new CustomPinpointLocalizer(hardwareMap, Constants.localizerConstants);
 
-        // Call the init() method for each subsystem, passing the hardwareMap
+        // Create the CombinedLocalizer, which fuses the two data sources
+        localizer = new CombinedLocalizer(pinpoint, aprilTag, telemetry);
+
+        // Call the init() method for each mechanical subsystem
         intake.init(hardwareMap);
         launcher.init(hardwareMap);
         transfer.init(hardwareMap);
-        aprilTag.init(hardwareMap, telemetry);
+
+        // --- Conditional Initialization for Competition Bot Hardware ---
+        if (Constants.IS_COMPETITION_BOT) {
+            colorDiverter = new ColorDiverterHardware();
+            colorDiverter.init(hardwareMap);
+        }
     }
 }

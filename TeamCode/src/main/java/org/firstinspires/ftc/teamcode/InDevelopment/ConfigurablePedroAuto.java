@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode.Competition;
+package org.firstinspires.ftc.teamcode.InDevelopment;
 
 // These are the required imports for a PedroPathing autonomous routine.
 import com.pedropathing.follower.Follower;
@@ -14,6 +14,9 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 import org.firstinspires.ftc.teamcode.RobotHardware.RobotHardwareContainer;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 
+// By importing our new FieldPosePresets class, we can access all the poses directly.
+import org.firstinspires.ftc.teamcode.RobotHardware.FieldPosePresets;
+
 /**
  * This is a configurable autonomous OpMode that uses the PedroPathing library.
  * It is structured as a Finite State Machine (FSM) to handle both the robot's
@@ -22,8 +25,8 @@ import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
  * During the init phase, use the gamepad to configure the autonomous settings.
  * This example is heavily commented to guide students on how to create their own routines.
  */
-@Autonomous(name = "CONFIGURABLE Pedro Auto", group = "Pedro", preselectTeleOp = "Butte2Controller")
-public class ButtePedroAuto extends OpMode {
+@Autonomous(name = "Configurable Pedro Auto", group = "Pedro", preselectTeleOp = "TeleopManualControls")
+public class ConfigurablePedroAuto extends OpMode {
 
     RobotHardwareContainer robot;
 
@@ -47,26 +50,7 @@ public class ButtePedroAuto extends OpMode {
     private StartPosition startPosition = StartPosition.FRONT;
     private AutoPath autoPath = AutoPath.SCORE_AND_PARK;
 
-    // Pose list
-    private static Pose BLUE_FRONT_START = new Pose(56, 9, Math.toRadians(90));
-    private Pose BLUE_BACK_START = new Pose(33, 135, Math.toRadians(270));
-    private Pose RED_FRONT_START = new Pose(88, 9, Math.toRadians(90));
-    private Pose RED_BACK_START = new Pose(111, 135, Math.toRadians(270));
-
-    private Pose BLUE_SCORE_POSE = new Pose(60, 84, Math.toRadians(135));
-    private Pose BLUE_PICKUP_FRONT_SPIKE = new Pose(40, 36, Math.toRadians(0));
-    private Pose BLUE_PICKUP_MIDDLE_SPIKE = new Pose(40, 60, Math.toRadians(0));
-    private Pose BLUE_PICKUP_BACK_SPIKE = new Pose(40, 84, Math.toRadians(0));
-
-    private Pose RED_SCORE_POSE = new Pose(84, 84, Math.toRadians(45));
-    private Pose RED_PICKUP_FRONT_SPIKE = new Pose(40, 36, Math.toRadians(0));
-    private Pose RED_PICKUP_MIDDLE_SPIKE = new Pose(40, 60, Math.toRadians(0));
-    private Pose RED_PICKUP_BACK_SPIKE = new Pose(40, 84, Math.toRadians(0));
-    private Pose BLUE_AUTO_PARK = new Pose(60, 60, Math.toRadians(180));
-    private Pose RED_AUTO_PARK = new Pose(84, 60, Math.toRadians(0));
-
-
-
+    // The pose declarations have been moved to the FieldPosePresets.java file!
 
     // Gamepad state tracking to prevent multiple button presses on one click.
     private Gamepad.RumbleEffect customRumbleEffect;
@@ -74,9 +58,6 @@ public class ButtePedroAuto extends OpMode {
     private boolean dpad_down_pressed = false;
     private boolean dpad_left_pressed = false;
     private boolean dpad_right_pressed = false;
-    private boolean left_bumper_pressed = false;
-    private boolean right_bumper_pressed = false;
-
 
     // ========== DECLARE OPMODE MEMBERS ==========
 
@@ -87,7 +68,7 @@ public class ButtePedroAuto extends OpMode {
     private int actionState;
 
     // === PATHING ===
-    // We will now calculate the startPose in init() based on the selected options.
+    // We will now calculate the poses in start() based on the selected options.
     private Pose startPose;
     private Pose pickupFrontPose;
     private Pose pickupMiddlePose;
@@ -95,41 +76,34 @@ public class ButtePedroAuto extends OpMode {
     private Pose scorePose;
     private Pose parkPose;
 
-    private Path scorePath;
+    // scorePath is now a PathChain to allow for control points.
+    private PathChain scorePath;
     private Path parkPath;
     private PathChain cyclePath;
-
 
     // ========== OpMode METHODS ==========
 
     @Override
     public void init() {
-        // Create a custom rumble effect for feedback during selection.
         customRumbleEffect = new Gamepad.RumbleEffect.Builder()
-                .addStep(0.5, 0.5, 200)  // Rumble both motors at 50% power for 200 ms
+                .addStep(0.5, 0.5, 200)
                 .build();
 
-        // Initialize our RobotHardwareContainer.
         robot = new RobotHardwareContainer(hardwareMap, telemetry);
-
-        // Initialize timers and follower.
         pathTimer = new ElapsedTime();
         actionTimer = new ElapsedTime();
-        follower = Constants.createFollower(hardwareMap);
+        // Pass the fused localizer from the RobotHardwareContainer to the Follower
+        follower = Constants.createFollower(hardwareMap, robot.localizer);
 
         telemetry.addLine("Autonomous Configuration:");
         telemetry.addLine("--------------------------------");
-        telemetry.addLine("Press D-Pad Up/Down to change Alliance.");
-        telemetry.addLine("Press Left/Right Bumper to change Start Position.");
-        telemetry.addLine("Press A/B to change Auto Path."); // You can add this if needed
+        telemetry.addLine("Press D-Pad Left/Right for Alliance.");
+        telemetry.addLine("Press D-Pad Up/Down for Start Position.");
         telemetry.update();
     }
 
     @Override
     public void init_loop() {
-        // --- Gamepad Logic for Configuration ---
-
-        // Alliance Selection (D-Pad Up/Down)
         if (gamepad1.dpad_left && !dpad_left_pressed) {
             alliance = Alliance.BLUE;
             gamepad1.runRumbleEffect(customRumbleEffect);
@@ -138,7 +112,6 @@ public class ButtePedroAuto extends OpMode {
             gamepad1.runRumbleEffect(customRumbleEffect);
         }
 
-        // Start Position Selection (Bumpers)
         if (gamepad1.dpad_up && !dpad_up_pressed) {
             startPosition = StartPosition.FRONT;
             gamepad1.runRumbleEffect(customRumbleEffect);
@@ -147,13 +120,11 @@ public class ButtePedroAuto extends OpMode {
             gamepad1.runRumbleEffect(customRumbleEffect);
         }
 
-        // --- Update Button Pressed States ---
         dpad_up_pressed = gamepad1.dpad_up;
         dpad_down_pressed = gamepad1.dpad_down;
         dpad_left_pressed = gamepad1.dpad_left;
         dpad_right_pressed = gamepad1.dpad_right;
 
-        // --- Telemetry for Configuration ---
         telemetry.clearAll();
         telemetry.addLine("--- Autonomous Configuration ---");
         telemetry.addData("Alliance", alliance.toString());
@@ -166,51 +137,34 @@ public class ButtePedroAuto extends OpMode {
 
     @Override
     public void start() {
-        // --- Finalize Configuration and Build Paths ---
-        // Now that settings are locked in, calculate poses and build paths.
         calculatePoses();
         buildPaths();
-
-        // Set the robot's starting position.
         follower.setStartingPose(startPose);
 
-        // Reset timers and set initial states.
         pathTimer.reset();
         actionTimer.reset();
-        pathState = 0; // Will be set to 1 in loop
+        pathState = 0;
         actionState = 0;
-        setPathState(1); // Kick off the state machine
+        setPathState(1);
     }
 
-    /**
-     * This method calculates the poses based on the alliance and start position.
-     * The field is symmetrical, so we can flip coordinates for the red alliance.
-     */
     private void calculatePoses() {
-        double heading_offset = (alliance == Alliance.BLUE) ? 0 : -Math.PI;
-
-        // Example poses - TUNE THESE FOR YOUR ROBOT AND GAME
-
-        if (alliance == Alliance.BLUE && startPosition == StartPosition.FRONT) {
-            startPose = BLUE_FRONT_START;
-        } else if ( alliance == Alliance.BLUE && startPosition == StartPosition.BACK) {
-            startPose = BLUE_BACK_START;
-        } else if (alliance == Alliance.RED && startPosition == StartPosition.FRONT) {
-            startPose = RED_FRONT_START;
-        } else if (alliance == Alliance.RED && startPosition == StartPosition.BACK){
-            startPose = RED_BACK_START;
+        if (alliance == Alliance.BLUE) {
+            startPose = (startPosition == StartPosition.FRONT) ? FieldPosePresets.BLUE_FRONT_START : FieldPosePresets.BLUE_BACK_START;
+            scorePose = FieldPosePresets.BLUE_SCORE_POSE;
+            pickupFrontPose = FieldPosePresets.BLUE_PICKUP_FRONT_SPIKE;
+            pickupMiddlePose = FieldPosePresets.BLUE_PICKUP_MIDDLE_SPIKE;
+            pickupBackPose = FieldPosePresets.BLUE_PICKUP_BACK_SPIKE;
+            parkPose = FieldPosePresets.BLUE_AUTO_PARK;
+        } else { // RED Alliance
+            startPose = (startPosition == StartPosition.FRONT) ? FieldPosePresets.RED_FRONT_START : FieldPosePresets.RED_BACK_START;
+            scorePose = FieldPosePresets.RED_SCORE_POSE;
+            pickupFrontPose = FieldPosePresets.RED_PICKUP_FRONT_SPIKE;
+            pickupMiddlePose = FieldPosePresets.RED_PICKUP_MIDDLE_SPIKE;
+            pickupBackPose = FieldPosePresets.RED_PICKUP_BACK_SPIKE;
+            parkPose = FieldPosePresets.RED_AUTO_PARK;
         }
-
-        scorePose = (alliance == Alliance.BLUE)? BLUE_SCORE_POSE: RED_SCORE_POSE;
-        pickupFrontPose = (alliance == Alliance.BLUE)? BLUE_PICKUP_FRONT_SPIKE: RED_PICKUP_FRONT_SPIKE;
-        pickupMiddlePose = (alliance == Alliance.BLUE)? BLUE_PICKUP_MIDDLE_SPIKE: RED_PICKUP_MIDDLE_SPIKE;
-        pickupBackPose = (alliance == Alliance.BLUE)? BLUE_PICKUP_BACK_SPIKE: RED_PICKUP_BACK_SPIKE;
-        parkPose = (alliance == Alliance.BLUE)? BLUE_AUTO_PARK: RED_AUTO_PARK;
     }
-
-
-    // The rest of the methods (loop, stop, buildPaths, updatePath, etc.) follow below...
-    // Note: I've updated buildPaths and updatePath to handle the different auto routines.
 
     @Override
     public void loop() {
@@ -231,21 +185,34 @@ public class ButtePedroAuto extends OpMode {
         follower.breakFollowing();
     }
 
-
-    // ========== HELPER METHODS ==========
-
     private void buildPaths() {
         // --- Score and Park Path ---
-        scorePath = new Path(new BezierLine(startPose, scorePose));
-        scorePath.setLinearHeadingInterpolation(startPose.getHeading(), scorePose.getHeading());
+        // CORRECTED EXAMPLE of using a control point to shape the path.
+        // To force the path to curve through a specific point, we create a PathChain
+        // with two BezierLine segments. The first goes from the start to the control point,
+        // and the second goes from the control point to the end.
+        //
+        // Let's create a control point to keep the robot in the tile column next to the truss.
+        // We'll define it based on the scoring pose's X-coordinate, and halfway down the field.
+        Pose scoreControlPoint = new Pose(scorePose.getX(), 48, startPose.getHeading());
 
+        scorePath = follower.pathBuilder()
+                .addPath(new BezierLine(startPose, scoreControlPoint))
+                .addPath(new BezierLine(scoreControlPoint, scorePose))
+                .setLinearHeadingInterpolation(startPose.getHeading(), scorePose.getHeading())
+                .build();
+
+        // The park path is a simple, single segment, so it can remain a regular Path.
         parkPath = new Path(new BezierLine(scorePose, parkPose));
         parkPath.setLinearHeadingInterpolation(scorePose.getHeading(), parkPose.getHeading());
 
         // --- Cycle Path ---
         if (autoPath == AutoPath.CYCLE) {
+            // We do the same thing for the cycle path to control its shape.
+            Pose pickupControlPoint = new Pose(pickupFrontPose.getX(), 48, scorePose.getHeading());
             cyclePath = follower.pathBuilder()
-                    .addPath(new BezierLine(scorePose, pickupFrontPose))
+                    .addPath(new BezierLine(scorePose, pickupControlPoint))
+                    .addPath(new BezierLine(pickupControlPoint, pickupFrontPose))
                     .setLinearHeadingInterpolation(scorePose.getHeading(), pickupFrontPose.getHeading())
                     .build();
         }
@@ -255,54 +222,43 @@ public class ButtePedroAuto extends OpMode {
         switch (pathState) {
             case 0: // IDLE
                 break;
-
             case 1: // Start first path (to score)
                 follower.followPath(scorePath);
                 setPathState(2);
                 break;
-
             case 2: // Wait for score path to finish, then trigger score action
                 if (!follower.isBusy()) {
                     setActionState(2); // Trigger scoring action
                     setPathState(3);
                 }
                 break;
-
             case 3: // Wait for score action to finish
                 if (actionState == 0) {
-                    // Decide what to do next based on the selected auto path
                     if (autoPath == AutoPath.SCORE_AND_PARK) {
                         follower.followPath(parkPath);
-                        setPathState(10); // Go to parking state
+                        setPathState(10);
                     } else { // CYCLE
                         follower.followPath(cyclePath);
-                        setPathState(4); // Go to cycle states
+                        setPathState(4);
                     }
                 }
                 break;
-
-            // --- Cycle-Specific States ---
             case 4: // Wait for path to pickup to finish
                 if (!follower.isBusy()) {
-                    setActionState(1); // Trigger pickup action
+                    setActionState(1);
                     setPathState(5);
                 }
                 break;
             case 5: // Wait for pickup action to finish
                 if (actionState == 0) {
-                    // Here you would build a path back to the score pose and follow it
-                    // For simplicity, we'll end here.
-                    setPathState(-1);
-                }
-                break;
-
-            // --- Park-Specific State ---
-            case 10: // Wait for park path to finish
-                if (!follower.isBusy()) {
                     setPathState(-1); // End of routine
                 }
                 break;
-
+            case 10: // Wait for park path to finish
+                if (!follower.isBusy()) {
+                    setPathState(-1);
+                }
+                break;
             case -1: // STOP
                 follower.breakFollowing();
                 break;

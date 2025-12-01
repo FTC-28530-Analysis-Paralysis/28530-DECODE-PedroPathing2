@@ -1,29 +1,33 @@
 package org.firstinspires.ftc.teamcode.RobotHardware;
 
 import com.qualcomm.robotcore.util.ElapsedTime;
-import org.firstinspires.ftc.teamcode.RobotHardware.RobotHardwareContainer;
 
 public class ActionManager {
 
+    private final RobotHardwareContainer robot;
     private final IntakeHardware intake;
     private final LauncherHardware launcher;
     private final TransferHardware transfer;
+    // The ColorDiverterHardware is nullable, as it may not exist on all robot configurations.
+    private final ColorDiverterHardware colorDiverter;
     private final ElapsedTime actionTimer = new ElapsedTime();
 
     public enum ActionState {
         IDLE,
-        INTAKING,         // Running intake motor to collect artifacts
-        LAUNCHING_SPINUP, // Spinning up flywheels
-        LAUNCHING_FIRE,   // Pushing artifacts into flywheels
+        INTAKING,
+        LAUNCHING_SPINUP,
+        LAUNCHING_FIRE,
         REVERSING,
         ACTION_COMPLETE
     }
     private ActionState currentState = ActionState.IDLE;
 
     public ActionManager(RobotHardwareContainer robotContainer) {
-        this.intake = robotContainer.intake;
-        this.launcher = robotContainer.launcher;
-        this.transfer = robotContainer.transfer;
+        this.robot = robotContainer;
+        this.intake = robot.intake;
+        this.launcher = robot.launcher;
+        this.transfer = robot.transfer;
+        this.colorDiverter = robot.colorDiverter; // This can be null
     }
 
     public void update() {
@@ -32,7 +36,6 @@ public class ActionManager {
                 break; // No timed logic in these states
 
             case INTAKING:
-                // Run intake for a set duration to collect 3 artifacts
                 if (actionTimer.seconds() > 2.5) { // Tune this time
                     stopAll();
                     currentState = ActionState.ACTION_COMPLETE;
@@ -40,16 +43,14 @@ public class ActionManager {
                 break;
 
             case LAUNCHING_SPINUP:
-                // Wait for launcher to be at target speed
                 if (launcher.isAtTargetSpeed()) {
-                    transfer.run(); // Start transfer to fire
+                    transfer.run();
                     actionTimer.reset();
                     currentState = ActionState.LAUNCHING_FIRE;
                 }
                 break;
 
             case LAUNCHING_FIRE:
-                // Run transfer for long enough to launch 3 artifacts
                 if (actionTimer.seconds() > 2.0) { // Tune this time
                     stopAll();
                     currentState = ActionState.ACTION_COMPLETE;
@@ -60,7 +61,6 @@ public class ActionManager {
 
     // ----- Public Methods to Trigger Actions -----
 
-    /** Runs the intake for a duration to collect artifacts. */
     public void startIntake() {
         if (isBusy()) return;
         currentState = ActionState.INTAKING;
@@ -68,19 +68,33 @@ public class ActionManager {
         actionTimer.reset();
     }
 
-    /** Starts the full launch sequence (spin-up, then fire). */
     public void startLaunch() {
         if (isBusy()) return;
         currentState = ActionState.LAUNCHING_SPINUP;
         launcher.spinUp();
     }
 
-    /** Reverses all mechanisms to clear jams. */
     public void reverseAll() {
         currentState = ActionState.REVERSING;
         intake.reverse();
         launcher.reverse();
         transfer.reverse();
+    }
+
+    // --- New Safe Methods for Color Diverter ---
+
+    /** Safely sets the diverter gate to the LEFT position. */
+    public void setDiverterLeft() {
+        if (colorDiverter != null) {
+            colorDiverter.setPosition(ColorDiverterHardware.GatePosition.LEFT);
+        }
+    }
+
+    /** Safely sets the diverter gate to the RIGHT position. */
+    public void setDiverterRight() {
+        if (colorDiverter != null) {
+            colorDiverter.setPosition(ColorDiverterHardware.GatePosition.RIGHT);
+        }
     }
 
     public boolean isBusy() {

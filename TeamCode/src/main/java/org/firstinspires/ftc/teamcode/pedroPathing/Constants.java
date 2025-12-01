@@ -5,8 +5,7 @@ import com.pedropathing.control.PIDFCoefficients;
 import com.pedropathing.follower.Follower;
 import com.pedropathing.follower.FollowerConstants;
 import com.pedropathing.ftc.FollowerBuilder;
-import com.pedropathing.ftc.localization.Encoder;
-import com.pedropathing.ftc.localization.constants.PinpointConstants;
+import com.pedropathing.localization.Localizer;
 import com.pedropathing.geometry.Pose;
 import com.pedropathing.math.Vector;
 import com.pedropathing.paths.PathConstraints;
@@ -16,14 +15,20 @@ import com.qualcomm.robotcore.hardware.HardwareMap;
 
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 
+// Import our new custom constants class
+import org.firstinspires.ftc.teamcode.pedroPathing.CustomPinpointConstants;
+
 public class Constants {
+    // ADDED: Master switch for robot configuration
+    public static final boolean IS_COMPETITION_BOT = false;
+
     public static FollowerConstants followerConstants = new FollowerConstants()
             .mass(9.35)
-    .forwardZeroPowerAcceleration(-35)
-    .lateralZeroPowerAcceleration(-58)
-    .translationalPIDFCoefficients(new PIDFCoefficients(0.1, 0, 0.01, 0.02))
-    .headingPIDFCoefficients(new PIDFCoefficients(1, 0, .1, 0.06))
-    .drivePIDFCoefficients(new FilteredPIDFCoefficients(0.1, 0, 0.01, 0.6, 0.03));
+            .forwardZeroPowerAcceleration(-35)
+            .lateralZeroPowerAcceleration(-58)
+            .translationalPIDFCoefficients(new PIDFCoefficients(0.1, 0, 0.01, 0.02))
+            .headingPIDFCoefficients(new PIDFCoefficients(1, 0, .1, 0.06))
+            .drivePIDFCoefficients(new FilteredPIDFCoefficients(0.1, 0, 0.01, 0.6, 0.03));
 
     public static PathConstraints pathConstraints = new PathConstraints(0.99, 100, 1, 1);
 
@@ -43,11 +48,9 @@ public class Constants {
 
         public final String VOLTAGE_SENSOR_NAME = "Control Hub";
 
-        // This is the crucial vector needed for the library's calculations
         private final double[] convertToPolar = Pose.cartesianToPolar(X_VELOCITY, -Y_VELOCITY);
         public final Vector frontLeftVector = new Vector(convertToPolar[0], convertToPolar[1]).normalize();
 
-        // Default values from the library, can be tuned if needed
         public double maxPower = 1.0;
         public double motorCachingThreshold = 0.01;
         public boolean useBrakeModeInTeleOp = false;
@@ -58,15 +61,8 @@ public class Constants {
 
     public static CustomDriveConstants customDriveConstants = new CustomDriveConstants();
 
-    public static Follower createFollower(HardwareMap hardwareMap) {
-        return new FollowerBuilder(followerConstants, hardwareMap)
-                .pinpointLocalizer(localizerConstants)
-                .pathConstraints(pathConstraints)
-                .setDrivetrain(new CustomMecanumDrive(hardwareMap, customDriveConstants))
-                .build();
-    }
-
-    public static PinpointConstants localizerConstants = new PinpointConstants()
+    // CORRECTED: Use our new, custom constants class
+    public static CustomPinpointConstants localizerConstants = new CustomPinpointConstants()
             .forwardPodY(-1.75)
             .strafePodX(6.625)
             .distanceUnit(DistanceUnit.INCH)
@@ -74,4 +70,18 @@ public class Constants {
             .encoderResolution(GoBildaPinpointDriver.GoBildaOdometryPods.goBILDA_4_BAR_POD)
             .forwardEncoderDirection(GoBildaPinpointDriver.EncoderDirection.REVERSED)
             .strafeEncoderDirection(GoBildaPinpointDriver.EncoderDirection.REVERSED);
+
+    /**
+     * Creates a Follower instance with the new CombinedLocalizer.
+     * @param hardwareMap The hardware map from the OpMode.
+     * @param localizer The fused localizer instance from the RobotHardwareContainer.
+     * @return A configured Follower instance.
+     */
+    public static Follower createFollower(HardwareMap hardwareMap, Localizer localizer) {
+        return new FollowerBuilder(followerConstants, hardwareMap)
+                .setLocalizer(localizer) // Use the fused localizer
+                .pathConstraints(pathConstraints)
+                .setDrivetrain(new CustomMecanumDrive(hardwareMap, customDriveConstants))
+                .build();
+    }
 }
