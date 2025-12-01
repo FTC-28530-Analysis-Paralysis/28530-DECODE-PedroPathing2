@@ -11,12 +11,12 @@ public class ColorDiverterHardware {
     private Servo diverterServo;
 
     // Define the servo positions for each track. These are placeholders and must be tuned.
-    public static final double LEFT_TRACK_POSITION = 0.2;
-    public static final double RIGHT_TRACK_POSITION = 0.8;
+    public static final double PURPLE_TRACK_POSITION = 0.0;
+    public static final double GREEN_TRACK_POSITION = 1.0;
 
     public enum GatePosition {
-        LEFT,  // Directs pixels to the left track
-        RIGHT  // Directs pixels to the right track
+        PURPLE,  // Directs artifacts to the left track
+        GREEN  // Directs artifacts to the right track
     }
 
     public void init(HardwareMap hardwareMap) {
@@ -25,13 +25,13 @@ public class ColorDiverterHardware {
 
     /**
      * Sets the diverter gate to the specified position.
-     * @param position The target position (LEFT or RIGHT).
+     * @param position The target position (PURPLE or GREEN).
      */
     public void setPosition(GatePosition position) {
-        if (position == GatePosition.LEFT) {
-            diverterServo.setPosition(LEFT_TRACK_POSITION);
+        if (position == GatePosition.PURPLE) {
+            diverterServo.setPosition(PURPLE_TRACK_POSITION);
         } else {
-            diverterServo.setPosition(RIGHT_TRACK_POSITION);
+            diverterServo.setPosition(GREEN_TRACK_POSITION);
         }
     }
 }

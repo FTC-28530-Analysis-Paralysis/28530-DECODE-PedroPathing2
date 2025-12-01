@@ -13,8 +13,8 @@ import org.firstinspires.ftc.teamcode.RobotHardware.FieldPosePresets;
 import org.firstinspires.ftc.teamcode.RobotHardware.RobotHardwareContainer;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 
-@TeleOp(name = "ButteTeleop (Actions)", group = "01 Butte")
-@Disabled // This OpMode is in development, preserving the @Disabled tag.
+@TeleOp(name = "TeleopWithActions", group = "01 Helena")
+//@Disabled // This OpMode is in development, preserving the @Disabled tag.
 public class TeleopWithActions extends OpMode {
 
     RobotHardwareContainer robot;
@@ -58,7 +58,7 @@ public class TeleopWithActions extends OpMode {
         switch (currentState) {
             case MANUAL:
                 // Drive control is now handled by the follower for seamless transitions
-                follower.setDrivePowers(new Pose(-gamepad1.left_stick_y, gamepad1.left_stick_x, gamepad1.right_stick_x));
+                follower.setTeleOpDrive(-gamepad1.left_stick_y, gamepad1.left_stick_x, gamepad1.right_stick_x);
 
                 // Alliance selection for parking
                 if (gamepad1.x && !x_pressed) {

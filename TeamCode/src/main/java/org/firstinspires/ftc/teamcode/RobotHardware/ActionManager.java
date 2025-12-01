@@ -83,17 +83,17 @@ public class ActionManager {
 
     // --- New Safe Methods for Color Diverter ---
 
-    /** Safely sets the diverter gate to the LEFT position. */
-    public void setDiverterLeft() {
+    /** Safely sets the diverter gate to the PURPLE position. */
+    public void setDiverterPurple() {
         if (colorDiverter != null) {
-            colorDiverter.setPosition(ColorDiverterHardware.GatePosition.LEFT);
+            colorDiverter.setPosition(ColorDiverterHardware.GatePosition.PURPLE);
         }
     }
 
-    /** Safely sets the diverter gate to the RIGHT position. */
-    public void setDiverterRight() {
+    /** Safely sets the diverter gate to the GREEN position. */
+    public void setDiverterGreen() {
         if (colorDiverter != null) {
-            colorDiverter.setPosition(ColorDiverterHardware.GatePosition.RIGHT);
+            colorDiverter.setPosition(ColorDiverterHardware.GatePosition.GREEN);
         }
     }
 
