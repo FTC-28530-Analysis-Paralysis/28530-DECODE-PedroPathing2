@@ -3,12 +3,11 @@ package org.firstinspires.ftc.teamcode.RobotHardware;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.HardwareMap;
-import com.qualcomm.robotcore.hardware.PIDFCoefficients;
 
 public class LauncherHardware {
 
-    private DcMotorEx leftFlywheel = null;
-    private DcMotorEx rightFlywheel = null;
+    private DcMotorEx leftlauncher = null;
+    private DcMotorEx rightlauncher = null;
 
     // These should be tuned for your robot
     public static final double TARGET_RPM = 2500; // The desired RPM for scoring
@@ -18,22 +17,22 @@ public class LauncherHardware {
     public static final double TICKS_PER_REV = 28;
 
     public void init(HardwareMap hardwareMap) {
-        leftFlywheel = hardwareMap.get(DcMotorEx.class, "leftFlywheel");
-        rightFlywheel = hardwareMap.get(DcMotorEx.class, "rightFlywheel");
+        leftlauncher = hardwareMap.get(DcMotorEx.class, "left_launcher");
+        rightlauncher = hardwareMap.get(DcMotorEx.class, "right_launcher");
 
-        leftFlywheel.setDirection(DcMotor.Direction.REVERSE);
-        rightFlywheel.setDirection(DcMotor.Direction.FORWARD);
+        leftlauncher.setDirection(DcMotor.Direction.REVERSE);
+        rightlauncher.setDirection(DcMotor.Direction.FORWARD);
 
-        leftFlywheel.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        rightFlywheel.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        leftlauncher.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        rightlauncher.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
 
         // Optional: Set custom PIDF coefficients if default tuning isn't good enough
         // PIDFCoefficients pidf = new PIDFCoefficients(p, i, d, f);
-        // leftFlywheel.setPIDFCoefficients(DcMotor.RunMode.RUN_USING_ENCODER, pidf);
-        // rightFlywheel.setPIDFCoefficients(DcMotor.RunMode.RUN_USING_ENCODER, pidf);
+        // leftlauncher.setPIDFCoefficients(DcMotor.RunMode.RUN_USING_ENCODER, pidf);
+        // rightlauncher.setPIDFCoefficients(DcMotor.RunMode.RUN_USING_ENCODER, pidf);
 
-        leftFlywheel.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        rightFlywheel.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        leftlauncher.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        rightlauncher.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
         stop();
     }
@@ -56,21 +55,21 @@ public class LauncherHardware {
     /** Spins up the flywheels to a specific target RPM. Used by Classic TeleOp. */
     public void spinUp(double targetRPM) {
         double targetVelocity_TPS = (targetRPM * TICKS_PER_REV) / 60.0;
-        rightFlywheel.setVelocity(targetVelocity_TPS);
-        leftFlywheel.setVelocity(targetVelocity_TPS);
+        rightlauncher.setVelocity(targetVelocity_TPS);
+        leftlauncher.setVelocity(targetVelocity_TPS);
     }
 
     /** Reverses the launcher to clear jams. */
     public void reverse() {
         // Use a low, constant velocity for reverse
-        rightFlywheel.setVelocity(-1000);
-        leftFlywheel.setVelocity(-1000);
+        rightlauncher.setVelocity(-1000);
+        leftlauncher.setVelocity(-1000);
     }
 
     /** Stops the flywheels. */
     public void stop() {
-        leftFlywheel.setVelocity(0);
-        rightFlywheel.setVelocity(0);
+        leftlauncher.setVelocity(0);
+        rightlauncher.setVelocity(0);
     }
 
     /** Checks if both flywheels are at the target speed within tolerance. */
@@ -86,10 +85,10 @@ public class LauncherHardware {
     }
 
     public double getLeftFlywheelRPM() {
-        return (leftFlywheel.getVelocity() * 60.0 / TICKS_PER_REV);
+        return (leftlauncher.getVelocity() * 60.0 / TICKS_PER_REV);
     }
 
     public double getRightFlywheelRPM(){
-        return (rightFlywheel.getVelocity() * 60.0 / TICKS_PER_REV);
+        return (rightlauncher.getVelocity() * 60.0 / TICKS_PER_REV);
     }
 }

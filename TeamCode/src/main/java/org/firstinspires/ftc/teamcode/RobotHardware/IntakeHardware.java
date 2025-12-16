@@ -7,13 +7,13 @@ import com.qualcomm.robotcore.hardware.HardwareMap;
 
 public class IntakeHardware {
 
-    private DcMotorEx intakeMotor = null;
+    private DcMotorEx intake = null;
     private static final double INTAKE_POWER = 1.0;
 
     public void init(HardwareMap hardwareMap) {
-        intakeMotor = hardwareMap.get(DcMotorEx.class, "activeIntake");
-        intakeMotor.setDirection(DcMotorSimple.Direction.FORWARD);
-        intakeMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        intake = hardwareMap.get(DcMotorEx.class, "intake");
+        intake.setDirection(DcMotorSimple.Direction.FORWARD);
+        intake.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         stop(); // Ensure motor is off at init
     }
 
@@ -21,16 +21,16 @@ public class IntakeHardware {
 
     /** Runs the intake inwards to collect pixels. */
     public void run() {
-        intakeMotor.setPower(INTAKE_POWER);
+        intake.setPower(INTAKE_POWER);
     }
 
     /** Reverses the intake to eject pixels. */
     public void reverse() {
-        intakeMotor.setPower(-INTAKE_POWER);
+        intake.setPower(-INTAKE_POWER);
     }
 
     /** Stops the intake motor. */
     public void stop() {
-        intakeMotor.setPower(0.0);
+        intake.setPower(0.0);
     }
 }
