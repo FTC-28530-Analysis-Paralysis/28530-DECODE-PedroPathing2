@@ -16,7 +16,7 @@ public class RobotHardwareContainer {
     // Publicly accessible hardware subsystem objects
     public final IntakeHardware intake;
     public final LauncherHardware launcher;
-    public final TransferHardware transfer;
+    public final FeederHardware transfer;
     public final LimelightAprilTagLocalizer aprilTag;
     public final CustomPinpointLocalizer pinpoint;
 
@@ -30,7 +30,7 @@ public class RobotHardwareContainer {
         // Create instances of each hardware class
         intake = new IntakeHardware();
         launcher = new LauncherHardware();
-        transfer = new TransferHardware();
+        transfer = new FeederHardware();
         
         // Create the two underlying localizers
         aprilTag = new LimelightAprilTagLocalizer();

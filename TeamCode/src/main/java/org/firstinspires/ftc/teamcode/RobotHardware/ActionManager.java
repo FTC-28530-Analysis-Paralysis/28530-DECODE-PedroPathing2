@@ -7,7 +7,7 @@ public class ActionManager {
     private final RobotHardwareContainer robot;
     private final IntakeHardware intake;
     private final LauncherHardware launcher;
-    private final TransferHardware transfer;
+    private final FeederHardware transfer;
     // The ColorDiverterHardware is nullable, as it may not exist on all robot configurations.
     private final ColorDiverterHardware colorDiverter;
     private final ElapsedTime actionTimer = new ElapsedTime();

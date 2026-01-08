@@ -10,11 +10,17 @@ public class LauncherHardware {
     private DcMotorEx rightlauncher = null;
 
     // These should be tuned for your robot
-    public static final double TARGET_RPM = 2500; // The desired RPM for scoring
-    public static final double RPM_TOLERANCE = 50; // Allowable error in RPM
+    static final double LAUNCHER_CLOSE_TARGET_VELOCITY = 1200; //in ticks/second for the close goal.
+
+    static final double LAUNCHER_FAR_TARGET_VELOCITY = 1350; //Target velocity for far goal
+
+    public static final double TARGET_RPM = LAUNCHER_CLOSE_TARGET_VELOCITY; // The desired RPM for scoring
+    public static final double RPM_TOLERANCE = 25; // Allowable error in RPM
     public static final double MAX_RPM = 6000; // Maximum RPM for the launcher
 
-    public static final double TICKS_PER_REV = 28;
+
+
+    public static final double TICKS_PER_REV = 28; // this is for the   GoBilda 6000rpm motor
 
     public void init(HardwareMap hardwareMap) {
         leftlauncher = hardwareMap.get(DcMotorEx.class, "left_launcher");
