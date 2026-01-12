@@ -4,12 +4,12 @@ import com.pedropathing.follower.Follower;
 import com.pedropathing.geometry.BezierLine;
 import com.pedropathing.geometry.Pose;
 import com.pedropathing.paths.Path;
-import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
 import org.firstinspires.ftc.teamcode.RobotHardware.ActionManager;
 import org.firstinspires.ftc.teamcode.RobotHardware.FieldPosePresets;
+import org.firstinspires.ftc.teamcode.RobotHardware.LauncherHardware;
 import org.firstinspires.ftc.teamcode.RobotHardware.RobotHardwareContainer;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 
@@ -61,12 +61,12 @@ public class TeleopWithActions extends OpMode {
                 follower.setTeleOpDrive(-gamepad1.left_stick_y, gamepad1.left_stick_x, gamepad1.right_stick_x);
 
                 // Alliance selection for parking
-                if (gamepad1.x && !x_pressed) {
+                if (gamepad1.xWasPressed()) {
                     alliance = (alliance == Alliance.BLUE) ? Alliance.RED : Alliance.BLUE;
                 }
 
                 // Auto-park trigger. Note: This repurposes the 'B' button from its 'stopAll' function.
-                if (gamepad1.b && !b_pressed) {
+                if (gamepad1.bWasPressed()) {
                     // Select the correct base pose based on the alliance
                     Pose parkPose = (alliance == Alliance.BLUE) ? FieldPosePresets.BLUE_BASE : FieldPosePresets.RED_BASE;
                     // Get the robot's current, accurate position
@@ -107,11 +107,13 @@ public class TeleopWithActions extends OpMode {
             actionManager.startIntake();
         } else if (gamepad1.left_trigger > 0.1) {
             actionManager.reverseAll();
-        } else if (gamepad1.dpad_right && !dpad_right_pressed) {
+        } else if (gamepad1.dpadRightWasPressed()) {
             actionManager.startLaunch();
-        } else if (gamepad1.y && !y_pressed) {
+        } else if (gamepad1.yWasPressed()) {
             // Manual override for transfer
             robot.transfer.run();
+        } else if (gamepad1.dpadUpWasPressed()){
+            robot.launcher.launchClose = !robot.launcher.launchClose;
         } else if (!actionManager.isBusy()) {
             // If no actions are running, ensure all mechanisms are stopped
             actionManager.stopAll();

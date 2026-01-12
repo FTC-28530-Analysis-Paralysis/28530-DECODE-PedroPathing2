@@ -13,14 +13,12 @@ public class LauncherHardware {
     static final double LAUNCHER_CLOSE_TARGET_VELOCITY = 1200; //in ticks/second for the close goal.
 
     static final double LAUNCHER_FAR_TARGET_VELOCITY = 1350; //Target velocity for far goal
-
-    public static final double TARGET_RPM = LAUNCHER_CLOSE_TARGET_VELOCITY; // The desired RPM for scoring
     public static final double RPM_TOLERANCE = 25; // Allowable error in RPM
     public static final double MAX_RPM = 6000; // Maximum RPM for the launcher
-
-
-
     public static final double TICKS_PER_REV = 28; // this is for the   GoBilda 6000rpm motor
+    private double targetRPM = 0;
+
+    public boolean launchClose = true;
 
     public void init(HardwareMap hardwareMap) {
         leftlauncher = hardwareMap.get(DcMotorEx.class, "left_launcher");
@@ -55,7 +53,14 @@ public class LauncherHardware {
 
     /** Spins up the flywheels to the default target RPM. Used by ActionManager. */
     public void spinUp() {
-        spinUp(TARGET_RPM); // Calls the other spinUp method with the default value
+
+        if (launchClose){
+            targetRPM = LAUNCHER_CLOSE_TARGET_VELOCITY;
+        } else {
+            targetRPM = LAUNCHER_FAR_TARGET_VELOCITY;
+        }
+
+        spinUp(targetRPM); // Calls the other spinUp method with the default value
     }
 
     /** Spins up the flywheels to a specific target RPM. Used by Classic TeleOp. */
@@ -87,7 +92,7 @@ public class LauncherHardware {
 
     // And the default version for the ActionManager
     public boolean isAtTargetSpeed() {
-        return isAtTargetSpeed(TARGET_RPM);
+        return isAtTargetSpeed(targetRPM);
     }
 
     public double getLeftFlywheelRPM() {
