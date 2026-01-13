@@ -9,6 +9,7 @@ public class IntakeHardware {
 
     private DcMotorEx intake = null;
     private static final double INTAKE_POWER = 1.0;
+    private boolean intakeOn = false;
 
     public void init(HardwareMap hardwareMap) {
         intake = hardwareMap.get(DcMotorEx.class, "intake");
@@ -32,5 +33,11 @@ public class IntakeHardware {
     /** Stops the intake motor. */
     public void stop() {
         intake.setPower(0.0);
+    }
+
+    public void toggleIntake(){
+        intakeOn = !intakeOn;
+        if (intakeOn) run();
+        else stop();
     }
 }

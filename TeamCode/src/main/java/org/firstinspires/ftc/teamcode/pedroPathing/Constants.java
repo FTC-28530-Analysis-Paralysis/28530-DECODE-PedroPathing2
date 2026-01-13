@@ -33,10 +33,10 @@ public class Constants {
     public static PathConstraints pathConstraints = new PathConstraints(0.99, 100, 1, 1);
 
     public static class CustomDriveConstants {
-        public final String LEFT_FRONT_MOTOR_NAME = "leftFrontDrive";
-        public final String LEFT_BACK_MOTOR_NAME = "leftBackDrive";
-        public final String RIGHT_FRONT_MOTOR_NAME = "rightFrontDrive";
-        public final String RIGHT_BACK_MOTOR_NAME = "rightBackDrive";
+        public final String LEFT_FRONT_MOTOR_NAME = "left_front_drive";
+        public final String LEFT_BACK_MOTOR_NAME = "left_rear_drive";
+        public final String RIGHT_FRONT_MOTOR_NAME = "right_front_drive";
+        public final String RIGHT_BACK_MOTOR_NAME = "right_rear_drive";
 
         public final DcMotor.Direction LEFT_FRONT_MOTOR_DIRECTION = DcMotor.Direction.REVERSE;
         public final DcMotor.Direction LEFT_BACK_MOTOR_DIRECTION = DcMotor.Direction.REVERSE;

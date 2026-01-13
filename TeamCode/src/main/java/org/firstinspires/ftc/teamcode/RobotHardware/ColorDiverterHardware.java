@@ -18,9 +18,11 @@ public class ColorDiverterHardware {
         PURPLE,  // Directs artifacts to the left track
         GREEN  // Directs artifacts to the right track
     }
+    GatePosition gatePosition = GatePosition.PURPLE;
 
     public void init(HardwareMap hardwareMap) {
         diverterServo = hardwareMap.get(Servo.class, "colorDiverter");
+
     }
 
     /**
@@ -28,7 +30,19 @@ public class ColorDiverterHardware {
      * @param position The target position (PURPLE or GREEN).
      */
     public void setPosition(GatePosition position) {
-        if (position == GatePosition.PURPLE) {
+        gatePosition = position;
+        moveToPosition();
+    }
+
+    public void togglePosition(){
+        if (gatePosition == GatePosition.PURPLE){
+            gatePosition = GatePosition.GREEN;
+        } else gatePosition = GatePosition.PURPLE;
+        moveToPosition();
+    }
+
+    public void moveToPosition(){
+        if (gatePosition == GatePosition.PURPLE) {
             diverterServo.setPosition(PURPLE_TRACK_POSITION);
         } else {
             diverterServo.setPosition(GREEN_TRACK_POSITION);

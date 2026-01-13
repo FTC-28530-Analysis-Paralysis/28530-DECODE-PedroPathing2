@@ -25,6 +25,7 @@ package org.firstinspires.ftc.teamcode.InDevelopment;
 
 import static com.qualcomm.robotcore.hardware.DcMotor.ZeroPowerBehavior.BRAKE;
 
+import com.pedropathing.follower.Follower;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.CRServo;
@@ -35,6 +36,9 @@ import com.qualcomm.robotcore.hardware.PIDFCoefficients;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
+import org.firstinspires.ftc.teamcode.RobotHardware.RobotHardwareContainer;
+import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
+
 /*
  * This file includes a teleop (driver-controlled) file for the goBILDA® Robot in 3 Days for the
  * 2025-2026 FIRST® Tech Challenge season DECODE™!
@@ -43,6 +47,10 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 @TeleOp(name = "TeleOpHardware", group = "StarterBot")
 //@Disabled
 public class TeleOpHardware extends OpMode {
+
+    RobotHardwareContainer robot;
+    Follower follower;
+
     final double FEED_TIME_SECONDS = 0.80; //The feeder servos run this long when a shot is requested.
     final double STOP_SPEED = 0.0; //We send this power to the servos when we want them to stop.
     final double FULL_SPEED = 1.0;
@@ -97,13 +105,6 @@ public class TeleOpHardware extends OpMode {
 
     private IntakeState intakeState = IntakeState.OFF;
 
-    private enum LauncherDistance {
-        CLOSE,
-        FAR;
-    }
-
-    private LauncherDistance launcherDistance = LauncherDistance.CLOSE;
-
     // Setup a variable for each drive wheel to save power level for telemetry
     double leftFrontPower;
     double rightFrontPower;
@@ -115,13 +116,14 @@ public class TeleOpHardware extends OpMode {
      */
     @Override
     public void init() {
+        robot = new RobotHardwareContainer(hardwareMap, telemetry);
+
+        // Initialize the follower with our fused localizer
+        follower = Constants.createFollower(hardwareMap, robot.localizer);
+
         leftLaunchState = LaunchState.IDLE;
         rightLaunchState = LaunchState.IDLE;
 
-        leftFrontDrive = hardwareMap.get(DcMotor.class, "left_front_drive");
-        rightFrontDrive = hardwareMap.get(DcMotor.class, "right_front_drive");
-        leftBackDrive = hardwareMap.get(DcMotor.class, "left_back_drive");
-        rightBackDrive = hardwareMap.get(DcMotor.class, "right_back_drive");
         leftLauncher = hardwareMap.get(DcMotorEx.class, "left_launcher");
         rightLauncher = hardwareMap.get(DcMotorEx.class, "right_launcher");
         intake = hardwareMap.get(DcMotor.class, "intake");
@@ -129,36 +131,12 @@ public class TeleOpHardware extends OpMode {
         rightFeeder = hardwareMap.get(CRServo.class, "right_feeder");
         diverter = hardwareMap.get(Servo.class, "diverter");
 
-        /*
-         * To drive forward, most robots need the motor on one side to be reversed,
-         * because the axles point in opposite directions. Pushing the left stick forward
-         * MUST make robot go forward. So adjust these two lines based on your first test drive.
-         * Note: The settings here assume direct drive on left and right wheels. Gear
-         * Reduction or 90 Deg drives may require direction flips
-         */
-        leftFrontDrive.setDirection(DcMotor.Direction.REVERSE);
-        rightFrontDrive.setDirection(DcMotor.Direction.FORWARD);
-        leftBackDrive.setDirection(DcMotor.Direction.REVERSE);
-        rightBackDrive.setDirection(DcMotor.Direction.FORWARD);
-
         leftLauncher.setDirection(DcMotorSimple.Direction.REVERSE);
 
         intake.setDirection(DcMotorSimple.Direction.REVERSE);
 
         leftLauncher.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         rightLauncher.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-
-        /*
-         * Setting zeroPowerBehavior to BRAKE enables a "brake mode". This causes the motor to
-         * slow down much faster when it is coasting. This creates a much more controllable
-         * drivetrain. As the robot stops much quicker.
-         */
-        leftFrontDrive.setZeroPowerBehavior(BRAKE);
-        rightFrontDrive.setZeroPowerBehavior(BRAKE);
-        leftBackDrive.setZeroPowerBehavior(BRAKE);
-        rightBackDrive.setZeroPowerBehavior(BRAKE);
-        leftLauncher.setZeroPowerBehavior(BRAKE);
-        rightLauncher.setZeroPowerBehavior(BRAKE);
 
         /*
          * set Feeders to an initial value to initialize the servo controller
@@ -201,77 +179,71 @@ public class TeleOpHardware extends OpMode {
      */
     @Override
     public void loop() {
+        // ALWAYS update the follower
+        // This runs our fused localization
+        follower.update();
 
-        mecanumDrive(-gamepad1.left_stick_y, gamepad1.left_stick_x, gamepad1.right_stick_x);
+//        mecanumDrive(-gamepad1.left_stick_y, gamepad1.left_stick_x, gamepad1.right_stick_x);
+
+        // Drive control is now handled by the follower for seamless transitions
+        follower.setTeleOpDrive(-gamepad1.left_stick_y, gamepad1.left_stick_x, gamepad1.right_stick_x);
 
         /*
          * Here we give the user control of the speed of the launcher motor without automatically
          * queuing a shot.
          */
         if (gamepad1.y) {
-            leftLauncher.setVelocity(launcherTarget);
-            rightLauncher.setVelocity(launcherTarget);
+            robot.launcher.spinUp();
         } else if (gamepad1.b) { // stop flywheel
-            leftLauncher.setVelocity(STOP_SPEED);
-            rightLauncher.setVelocity(STOP_SPEED);
+            robot.launcher.stop();
         }
 
         if (gamepad1.dpadDownWasPressed()) {
-            switch (diverterDirection){
-                case LEFT:
-                    diverterDirection = DiverterDirection.RIGHT;
-                    diverter.setPosition(RIGHT_POSITION);
-                    break;
-                case RIGHT:
-                    diverterDirection = DiverterDirection.LEFT;
-                    diverter.setPosition(LEFT_POSITION);
-                    break;
-            }
+            robot.colorDiverter.togglePosition();
+//            switch (diverterDirection){
+//                case LEFT:
+//                    diverterDirection = DiverterDirection.RIGHT;
+//                    diverter.setPosition(RIGHT_POSITION);
+//                    break;
+//                case RIGHT:
+//                    diverterDirection = DiverterDirection.LEFT;
+//                    diverter.setPosition(LEFT_POSITION);
+//                    break;
+//            }
         }
 
         if (gamepad1.aWasPressed()){
-            switch (intakeState){
-                case ON:
-                    intakeState = IntakeState.OFF;
-                    intake.setPower(0);
-                    break;
-                case OFF:
-                    intakeState = IntakeState.ON;
-                    intake.setPower(1);
-                    break;
-            }
+            robot.intake.toggleIntake();
+//            switch (intakeState){
+//                case ON:
+//                    intakeState = IntakeState.OFF;
+//                    intake.setPower(0);
+//                    break;
+//                case OFF:
+//                    intakeState = IntakeState.ON;
+//                    intake.setPower(1);
+//                    break;
+//            }
         }
 
 
         if (gamepad1.dpadUpWasPressed()) {
-            switch (launcherDistance) {
-                case CLOSE:
-                    launcherDistance = LauncherDistance.FAR;
-                    launcherTarget = LAUNCHER_FAR_TARGET_VELOCITY;
-                    launcherMin = LAUNCHER_FAR_MIN_VELOCITY;
-                    break;
-                case FAR:
-                    launcherDistance = LauncherDistance.CLOSE;
-                    launcherTarget = LAUNCHER_CLOSE_TARGET_VELOCITY;
-                    launcherMin = LAUNCHER_CLOSE_MIN_VELOCITY;
-                    break;
-            }
+            robot.launcher.toggleLaunchDistance();
         }
 
-        /*
-         * Now we call our "Launch" function.
-         */
-        launchLeft(gamepad1.leftBumperWasPressed());
-        launchRight(gamepad1.rightBumperWasPressed());
+//        /*
+//         * Now we call our "Launch" function.
+//         */
+//        launchLeft(gamepad1.leftBumperWasPressed());
+//        launchRight(gamepad1.rightBumperWasPressed());
 
         /*
          * Show the state and motor powers
          */
         telemetry.addData("State", leftLaunchState);
-        telemetry.addData("launch distance", launcherDistance);
+        telemetry.addData("launch distance", robot.launcher.launchClose? "Close": "Far");
         telemetry.addData("Left Launcher Velocity", leftLauncher.getVelocity());
         telemetry.addData("Right Launcher Velocity", rightLauncher.getVelocity());
-
     }
 
     /*
@@ -281,25 +253,25 @@ public class TeleOpHardware extends OpMode {
     public void stop() {
     }
 
-    void mecanumDrive(double forward, double strafe, double rotate){
-
-        /* the denominator is the largest motor power (absolute value) or 1
-         * This ensures all the powers maintain the same ratio,
-         * but only if at least one is out of the range [-1, 1]
-         */
-        double denominator = Math.max(Math.abs(forward) + Math.abs(strafe) + Math.abs(rotate), 1);
-
-        leftFrontPower = (forward + strafe + rotate) / denominator;
-        rightFrontPower = (forward + strafe - rotate) / denominator;
-        leftBackPower = (forward - strafe + rotate) / denominator;
-        rightBackPower = (forward - strafe - rotate) / denominator;
-
-        leftFrontDrive.setPower(leftFrontPower);
-        rightFrontDrive.setPower(rightFrontPower);
-        leftBackDrive.setPower(leftBackPower);
-        rightBackDrive.setPower(rightBackPower);
-
-    }
+//    void mecanumDrive(double forward, double strafe, double rotate){
+//
+//        /* the denominator is the largest motor power (absolute value) or 1
+//         * This ensures all the powers maintain the same ratio,
+//         * but only if at least one is out of the range [-1, 1]
+//         */
+//        double denominator = Math.max(Math.abs(forward) + Math.abs(strafe) + Math.abs(rotate), 1);
+//
+//        leftFrontPower = (forward + strafe + rotate) / denominator;
+//        rightFrontPower = (forward + strafe - rotate) / denominator;
+//        leftBackPower = (forward - strafe + rotate) / denominator;
+//        rightBackPower = (forward - strafe - rotate) / denominator;
+//
+//        leftFrontDrive.setPower(leftFrontPower);
+//        rightFrontDrive.setPower(rightFrontPower);
+//        leftBackDrive.setPower(leftBackPower);
+//        rightBackDrive.setPower(rightBackPower);
+//
+//    }
 
     void launchLeft(boolean shotRequested) {
         switch (leftLaunchState) {

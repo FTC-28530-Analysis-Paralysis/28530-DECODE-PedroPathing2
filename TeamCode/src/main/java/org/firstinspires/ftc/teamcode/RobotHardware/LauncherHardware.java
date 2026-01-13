@@ -70,6 +70,12 @@ public class LauncherHardware {
         leftlauncher.setVelocity(targetVelocity_TPS);
     }
 
+    /** Switches between close and far launch velocities. */
+    public void toggleLaunchDistance()
+    {
+        launchClose = !launchClose;
+    }
+
     /** Reverses the launcher to clear jams. */
     public void reverse() {
         // Use a low, constant velocity for reverse

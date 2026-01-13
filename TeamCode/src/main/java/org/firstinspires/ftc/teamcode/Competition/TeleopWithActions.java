@@ -98,7 +98,6 @@ public class TeleopWithActions extends OpMode {
                 break;
         }
 
-        updateButtonStates();
         updateTelemetry();
     }
 
@@ -118,13 +117,6 @@ public class TeleopWithActions extends OpMode {
             // If no actions are running, ensure all mechanisms are stopped
             actionManager.stopAll();
         }
-    }
-
-    private void updateButtonStates() {
-        dpad_right_pressed = gamepad1.dpad_right;
-        y_pressed = gamepad1.y;
-        b_pressed = gamepad1.b;
-        x_pressed = gamepad1.x;
     }
 
     private void updateTelemetry() {
