@@ -23,7 +23,7 @@ public class Constants {
     public static final boolean IS_COMPETITION_BOT = false;
 
     public static FollowerConstants followerConstants = new FollowerConstants()
-            .mass(9.35)
+            .mass(11.5)
             .forwardZeroPowerAcceleration(-35)
             .lateralZeroPowerAcceleration(-58)
             .translationalPIDFCoefficients(new PIDFCoefficients(0.1, 0, 0.01, 0.02))
@@ -34,9 +34,9 @@ public class Constants {
 
     public static class CustomDriveConstants {
         public final String LEFT_FRONT_MOTOR_NAME = "left_front_drive";
-        public final String LEFT_BACK_MOTOR_NAME = "left_rear_drive";
+        public final String LEFT_BACK_MOTOR_NAME = "left_back_drive";
         public final String RIGHT_FRONT_MOTOR_NAME = "right_front_drive";
-        public final String RIGHT_BACK_MOTOR_NAME = "right_rear_drive";
+        public final String RIGHT_BACK_MOTOR_NAME = "right_back_drive";
 
         public final DcMotor.Direction LEFT_FRONT_MOTOR_DIRECTION = DcMotor.Direction.REVERSE;
         public final DcMotor.Direction LEFT_BACK_MOTOR_DIRECTION = DcMotor.Direction.REVERSE;
@@ -63,8 +63,8 @@ public class Constants {
 
     // CORRECTED: Use our new, custom constants class
     public static CustomPinpointConstants localizerConstants = new CustomPinpointConstants()
-            .forwardPodY(-1.75)
-            .strafePodX(6.625)
+            .forwardPodY(-3.25)
+            .strafePodX(-6.625)
             .distanceUnit(DistanceUnit.INCH)
             .hardwareMapName("pinpoint")
             .encoderResolution(GoBildaPinpointDriver.GoBildaOdometryPods.goBILDA_4_BAR_POD)
