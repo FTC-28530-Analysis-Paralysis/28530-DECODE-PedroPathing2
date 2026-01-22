@@ -6,6 +6,8 @@ import static org.firstinspires.ftc.teamcode.pedroPathing.Tuning.draw;
 import static org.firstinspires.ftc.teamcode.pedroPathing.Tuning.follower;
 import static org.firstinspires.ftc.teamcode.pedroPathing.Tuning.stopRobot;
 import static org.firstinspires.ftc.teamcode.pedroPathing.Tuning.telemetryM;
+import org.firstinspires.ftc.teamcode.pedroPathing.LimelightAprilTagLocalizer;
+import org.firstinspires.ftc.teamcode.pedroPathing.CustomPinpointLocalizer;
 
 import com.bylazar.configurables.PanelsConfigurables;
 import com.bylazar.configurables.annotations.Configurable;
@@ -79,9 +81,20 @@ public class Tuning extends SelectableOpMode {
     @Override
     public void onSelect() {
         if (follower == null) {
+            // Initialize your custom localizers first
+            LimelightAprilTagLocalizer limelight = new LimelightAprilTagLocalizer();
+            limelight.init(hardwareMap, telemetry);
+
+            CustomPinpointLocalizer pinpoint = new CustomPinpointLocalizer(hardwareMap, Constants.localizerConstants);
+
+            // Create the CombinedLocalizer to fuse them
+            localizer = new CombinedLocalizer(pinpoint, limelight, telemetry);
+
+            // Now create the follower with the fully initialized localizer
             follower = Constants.createFollower(hardwareMap, localizer);
             PanelsConfigurables.INSTANCE.refreshClass(this);
         } else {
+            // If the follower already exists, just re-create it with the same localizer
             follower = Constants.createFollower(hardwareMap, localizer);
         }
 

@@ -19,8 +19,6 @@ import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.teamcode.pedroPathing.CustomPinpointConstants;
 
 public class Constants {
-    // ADDED: Master switch for robot configuration
-    public static final boolean IS_COMPETITION_BOT = false;
 
     public static FollowerConstants followerConstants = new FollowerConstants()
             .mass(11.5)
