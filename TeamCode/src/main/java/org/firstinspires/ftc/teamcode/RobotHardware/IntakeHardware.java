@@ -20,12 +20,12 @@ public class IntakeHardware {
 
     // --- Public Methods ---
 
-    /** Runs the intake inwards to collect pixels. */
+    /** Runs the intake inwards to collect artifacts. */
     public void run() {
         intake.setPower(INTAKE_POWER);
     }
 
-    /** Reverses the intake to eject pixels. */
+    /** Reverses the intake to eject artifacts. */
     public void reverse() {
         intake.setPower(-INTAKE_POWER);
     }

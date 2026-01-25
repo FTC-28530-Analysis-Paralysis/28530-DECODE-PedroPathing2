@@ -145,7 +145,7 @@ public class ConfigurableAuto_Limelight extends OpMode {
     private void calculatePoses() {
         if (alliance == Alliance.BLUE) {
             startPose = (startPosition == StartPosition.FRONT) ? FieldPosePresets.BLUE_FRONT_START : FieldPosePresets.BLUE_BACK_START;
-            scorePose = FieldPosePresets.BLUE_SCORE_POSE;
+            scorePose = FieldPosePresets.BLUE_SCORE_CLOSE_TO_GOAL;
             parkPose = FieldPosePresets.BLUE_AUTO_PARK;
             frontSpike = FieldPosePresets.BLUE_PICKUP_FRONT_SPIKE;
             middleSpike = FieldPosePresets.BLUE_PICKUP_MIDDLE_SPIKE;
@@ -154,7 +154,7 @@ public class ConfigurableAuto_Limelight extends OpMode {
             gateTriggerPose = FieldPosePresets.BLUE_GATE_TRIGGER;
         } else { // RED Alliance
             startPose = (startPosition == StartPosition.FRONT) ? FieldPosePresets.RED_FRONT_START : FieldPosePresets.RED_BACK_START;
-            scorePose = FieldPosePresets.RED_SCORE_POSE;
+            scorePose = FieldPosePresets.RED_SCORE_CLOSE_TO_GOAL;
             parkPose = FieldPosePresets.RED_AUTO_PARK;
             frontSpike = FieldPosePresets.RED_PICKUP_FRONT_SPIKE;
             middleSpike = FieldPosePresets.RED_PICKUP_MIDDLE_SPIKE;

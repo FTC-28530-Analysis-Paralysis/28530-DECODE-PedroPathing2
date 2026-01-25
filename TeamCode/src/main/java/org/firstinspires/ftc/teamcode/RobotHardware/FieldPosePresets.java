@@ -9,11 +9,18 @@ import com.pedropathing.geometry.Pose;
  */
 public class FieldPosePresets {
 
+    // ========== GOAL TARGETS ==========
+    // These are the center points of the goals for aiming calculations.
+    public static Pose BLUE_GOAL_TARGET = new Pose(0, 144, Math.toRadians(270));
+    public static Pose RED_GOAL_TARGET = new Pose(144, 144, Math.toRadians(270));
+
     // ========== BLUE ALLIANCE POSES ==========
     public static Pose BLUE_FRONT_START = new Pose(56, 9, Math.toRadians(90));
     public static Pose BLUE_BACK_START = new Pose(33, 135, Math.toRadians(270));
 
-    public static Pose BLUE_SCORE_POSE = new Pose(60, 84, Math.toRadians(135));
+    public static Pose BLUE_SCORE_CLOSE_TO_GOAL = new Pose(60, 84, Math.toRadians(135));
+    public static Pose BLUE_SCORE_FAR_FROM_GOAL = new Pose(54, 12, Math.toRadians(112));
+
     public static Pose BLUE_PICKUP_FRONT_SPIKE = new Pose(40, 36, Math.toRadians(0));
     public static Pose BLUE_PICKUP_MIDDLE_SPIKE = new Pose(40, 60, Math.toRadians(0));
     public static Pose BLUE_PICKUP_BACK_SPIKE = new Pose(40, 84, Math.toRadians(0));
@@ -29,7 +36,9 @@ public class FieldPosePresets {
     public static Pose RED_FRONT_START = new Pose(88, 9, Math.toRadians(90));
     public static Pose RED_BACK_START = new Pose(111, 135, Math.toRadians(270));
 
-    public static Pose RED_SCORE_POSE = new Pose(84, 84, Math.toRadians(45));
+    public static Pose RED_SCORE_CLOSE_TO_GOAL = new Pose(84, 84, Math.toRadians(45));
+    public static Pose RED_SCORE_FAR_FROM_GOAL = new Pose(90, 12, Math.toRadians(68));
+
     public static Pose RED_PICKUP_FRONT_SPIKE = new Pose(104, 36, Math.toRadians(180));
     public static Pose RED_PICKUP_MIDDLE_SPIKE = new Pose(104, 60, Math.toRadians(180));
     public static Pose RED_PICKUP_BACK_SPIKE = new Pose(104, 84, Math.toRadians(180));

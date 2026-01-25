@@ -17,6 +17,7 @@ public class RobotHardwareContainer {
     public final IntakeHardware intake;
     public final LauncherHardware launcher;
     public final FeederHardware transfer;
+    public final IndicatorLightHardware indicatorLight;
     public final LimelightAprilTagLocalizer aprilTag;
     public final CustomPinpointLocalizer pinpoint;
 
@@ -31,6 +32,8 @@ public class RobotHardwareContainer {
         intake = new IntakeHardware();
         launcher = new LauncherHardware();
         transfer = new FeederHardware();
+        indicatorLight = new IndicatorLightHardware();
+        colorDiverter = new ColorDiverterHardware();
         
         // Create the two underlying localizers
         aprilTag = new LimelightAprilTagLocalizer();
@@ -41,14 +44,10 @@ public class RobotHardwareContainer {
         localizer = new CombinedLocalizer(pinpoint, aprilTag, telemetry);
 
         // Call the init() method for each mechanical subsystem
+        indicatorLight.init(hardwareMap);
         intake.init(hardwareMap);
-        launcher.init(hardwareMap);
+        launcher.init(hardwareMap, indicatorLight);
         transfer.init(hardwareMap);
-
-        // --- Conditional Initialization for Competition Bot Hardware ---
-        if (Constants.IS_COMPETITION_BOT) {
-            colorDiverter = new ColorDiverterHardware();
-            colorDiverter.init(hardwareMap);
-        }
+        colorDiverter.init(hardwareMap);
     }
 }

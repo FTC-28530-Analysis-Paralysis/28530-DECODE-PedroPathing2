@@ -3,24 +3,36 @@ package org.firstinspires.ftc.teamcode.RobotHardware;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.HardwareMap;
+import com.qualcomm.robotcore.hardware.PIDFCoefficients;
+import com.pedropathing.geometry.Pose;
 
 public class LauncherHardware {
 
     private DcMotorEx leftlauncher = null;
     private DcMotorEx rightlauncher = null;
+    private IndicatorLightHardware indicatorLight = null;
 
-    // These should be tuned for your robot
-    static final double LAUNCHER_CLOSE_TARGET_VELOCITY = 1200; //in ticks/second for the close goal.
+    public static final PIDFCoefficients LAUNCHER_PIDF = new PIDFCoefficients(300, 0, 0, 10);
 
-    static final double LAUNCHER_FAR_TARGET_VELOCITY = 1350; //Target velocity for far goal
-    public static final double RPM_TOLERANCE = 25; // Allowable error in RPM
-    public static final double MAX_RPM = 6000; // Maximum RPM for the launcher
-    public static final double TICKS_PER_REV = 28; // this is for the   GoBilda 6000rpm motor
+    // --- LAUNCHER SPEED INTERPOLATION CONSTANTS ---
+    // These two points define the linear relationship between distance and speed.
+    // The formula will extrapolate beyond these points for shots that are closer or farther.
+    private static final Pose   CLOSE_SHOT_POSE   = new Pose(75, 81, 0);
+    private static final double CLOSE_SHOT_RPM    = 1200.0;
+    private static final Pose   FAR_SHOT_POSE     = new Pose(84, 11, 0);
+    private static final double FAR_SHOT_RPM      = 1350.0;
+
+    // Cached distances for interpolation, calculated on first use to be safe.
+    private static double closeShotDistance = -1;
+    private static double farShotDistance = -1;
+
+    public static final double RPM_TOLERANCE = 25;
+    public static final double TICKS_PER_REV = 28;
     private double targetRPM = 0;
+    private boolean isSpinning = false;
 
-    public boolean launchClose = true;
-
-    public void init(HardwareMap hardwareMap) {
+    public void init(HardwareMap hardwareMap, IndicatorLightHardware indicatorLight) {
+        this.indicatorLight = indicatorLight;
         leftlauncher = hardwareMap.get(DcMotorEx.class, "left_launcher");
         rightlauncher = hardwareMap.get(DcMotorEx.class, "right_launcher");
 
@@ -30,10 +42,8 @@ public class LauncherHardware {
         leftlauncher.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         rightlauncher.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
 
-        // Optional: Set custom PIDF coefficients if default tuning isn't good enough
-        // PIDFCoefficients pidf = new PIDFCoefficients(p, i, d, f);
-        // leftlauncher.setPIDFCoefficients(DcMotor.RunMode.RUN_USING_ENCODER, pidf);
-        // rightlauncher.setPIDFCoefficients(DcMotor.RunMode.RUN_USING_ENCODER, pidf);
+        leftlauncher.setPIDFCoefficients(DcMotor.RunMode.RUN_USING_ENCODER, LAUNCHER_PIDF);
+        rightlauncher.setPIDFCoefficients(DcMotor.RunMode.RUN_USING_ENCODER, LAUNCHER_PIDF);
 
         leftlauncher.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         rightlauncher.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
@@ -41,64 +51,79 @@ public class LauncherHardware {
         stop();
     }
 
-    // --- Public Methods ---
+    public void update(Pose robotPose) {
+        if (isSpinning) {
+            if (robotPose == null) { // Safety check
+                setLaunchSpeed(CLOSE_SHOT_RPM); // Default to close shot RPM if localization is lost
+            } else {
+                Pose targetGoal = (GameState.alliance == GameState.Alliance.BLUE)
+                        ? FieldPosePresets.BLUE_GOAL_TARGET
+                        : FieldPosePresets.RED_GOAL_TARGET;
 
-    public void setTargetRPM(double rpm) {
-        // This is a placeholder as TARGET_RPM is final. We need to change the implementation.
-        // The spinUp method should accept the RPM directly.
+                double distance = Math.hypot(targetGoal.getX() - robotPose.getX(), targetGoal.getY() - robotPose.getY());
+                double calculatedSpeed = interpolate(distance);
+                setLaunchSpeed(calculatedSpeed);
+            }
+
+            if (isAtTargetSpeed()) {
+                indicatorLight.setGreen();
+            } else {
+                indicatorLight.setRed();
+            }
+        } else {
+            setLaunchSpeed(0);
+        }
+        indicatorLight.update();
     }
 
-// CORRECTED approach:
-// In LauncherHardware.java, change the spinUp() method to take a parameter.
+    public void start() {
+        isSpinning = true;
+    }
 
-    /** Spins up the flywheels to the default target RPM. Used by ActionManager. */
-    public void spinUp() {
+    public void stop() {
+        isSpinning = false;
+        setLaunchSpeed(0);
+        if (indicatorLight != null) {
+            indicatorLight.setOff();
+        }
+    }
 
-        if (launchClose){
-            targetRPM = LAUNCHER_CLOSE_TARGET_VELOCITY;
-        } else {
-            targetRPM = LAUNCHER_FAR_TARGET_VELOCITY;
+    public boolean isSpinning() {
+        return isSpinning;
+    }
+
+    private double interpolate(double currentDistance) {
+        // Calculate the reference distances on the first call to be safe.
+        if (closeShotDistance < 0) {
+            // The tuning points are on the red side, so we use the red goal as our reference for both.
+            closeShotDistance = Math.hypot(FieldPosePresets.RED_GOAL_TARGET.getX() - CLOSE_SHOT_POSE.getX(), FieldPosePresets.RED_GOAL_TARGET.getY() - CLOSE_SHOT_POSE.getY());
+            farShotDistance = Math.hypot(FieldPosePresets.RED_GOAL_TARGET.getX() - FAR_SHOT_POSE.getX(), FieldPosePresets.RED_GOAL_TARGET.getY() - FAR_SHOT_POSE.getY());
         }
 
-        spinUp(targetRPM); // Calls the other spinUp method with the default value
+        // Using the classic linear interpolation formula y = y1 + (x - x1) * (y2 - y1) / (x2 - x1)
+        double calculatedSpeed = CLOSE_SHOT_RPM + ((currentDistance - closeShotDistance) * (FAR_SHOT_RPM - CLOSE_SHOT_RPM)) / (farShotDistance - closeShotDistance);
+        return Math.max(0, calculatedSpeed); // Prevent negative speeds
     }
 
-    /** Spins up the flywheels to a specific target RPM. Used by Classic TeleOp. */
-    public void spinUp(double targetRPM) {
+    private void setLaunchSpeed(double targetRPM) {
+        this.targetRPM = targetRPM;
         double targetVelocity_TPS = (targetRPM * TICKS_PER_REV) / 60.0;
         rightlauncher.setVelocity(targetVelocity_TPS);
         leftlauncher.setVelocity(targetVelocity_TPS);
     }
 
-    /** Switches between close and far launch velocities. */
-    public void toggleLaunchDistance()
-    {
-        launchClose = !launchClose;
-    }
-
-    /** Reverses the launcher to clear jams. */
     public void reverse() {
-        // Use a low, constant velocity for reverse
         rightlauncher.setVelocity(-1000);
         leftlauncher.setVelocity(-1000);
+        if (indicatorLight != null) {
+            indicatorLight.setOff();
+        }
     }
 
-    /** Stops the flywheels. */
-    public void stop() {
-        leftlauncher.setVelocity(0);
-        rightlauncher.setVelocity(0);
-    }
-
-    /** Checks if both flywheels are at the target speed within tolerance. */
-    public boolean isAtTargetSpeed(double targetRPM) {
+    public boolean isAtTargetSpeed() {
         double leftError = Math.abs(targetRPM - getLeftFlywheelRPM());
         double rightError = Math.abs(targetRPM - getRightFlywheelRPM());
         return (leftError < RPM_TOLERANCE) && (rightError < RPM_TOLERANCE);
-    }
-
-    // And the default version for the ActionManager
-    public boolean isAtTargetSpeed() {
-        return isAtTargetSpeed(targetRPM);
     }
 
     public double getLeftFlywheelRPM() {
@@ -107,5 +132,9 @@ public class LauncherHardware {
 
     public double getRightFlywheelRPM(){
         return (rightlauncher.getVelocity() * 60.0 / TICKS_PER_REV);
+    }
+
+    public double getTargetRPM(){
+        return targetRPM;
     }
 }
