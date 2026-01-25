@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode.Competition;
+package org.firstinspires.ftc.teamcode.InDevelopment;
 
 import com.pedropathing.follower.Follower;
 import com.pedropathing.geometry.BezierLine;
@@ -9,13 +9,12 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
 import org.firstinspires.ftc.teamcode.RobotHardware.ActionManager;
 import org.firstinspires.ftc.teamcode.RobotHardware.FieldPosePresets;
-import org.firstinspires.ftc.teamcode.RobotHardware.LauncherHardware;
 import org.firstinspires.ftc.teamcode.RobotHardware.RobotHardwareContainer;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 
-@TeleOp(name = "TeleopWithActions", group = "01 Helena")
+@TeleOp(name = "TeleopWithActions", group = "01 Bozeman")
 //@Disabled // This OpMode is in development, preserving the @Disabled tag.
-public class TeleopWithActions extends OpMode {
+public class OldTeleopWithActions extends OpMode {
 
     RobotHardwareContainer robot;
     ActionManager actionManager;
