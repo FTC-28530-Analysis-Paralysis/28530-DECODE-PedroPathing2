@@ -19,7 +19,7 @@ public class FeederHardware {
 
     // --- Public Methods ---
 
-    /** Runs the transfer to move pixels towards the launcher. */
+    /** Runs the transfer to move artifacts towards the launcher. */
     public void run() {
         leftfeeder.setPower(FEEDER_POWER);
         rightfeeder.setPower(FEEDER_POWER);
