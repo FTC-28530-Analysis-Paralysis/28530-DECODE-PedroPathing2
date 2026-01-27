@@ -22,8 +22,8 @@ public class Constants {
 
     public static FollowerConstants followerConstants = new FollowerConstants()
             .mass(11.5)
-            .forwardZeroPowerAcceleration(-35)
-            .lateralZeroPowerAcceleration(-58)
+            .forwardZeroPowerAcceleration(-28)
+            .lateralZeroPowerAcceleration(-59)
             .translationalPIDFCoefficients(new PIDFCoefficients(0.1, 0, 0.01, 0.02))
             .headingPIDFCoefficients(new PIDFCoefficients(1, 0, .1, 0.06))
             .drivePIDFCoefficients(new FilteredPIDFCoefficients(0.1, 0, 0.01, 0.6, 0.03));
@@ -41,8 +41,8 @@ public class Constants {
         public final DcMotor.Direction RIGHT_FRONT_MOTOR_DIRECTION = DcMotor.Direction.FORWARD;
         public final DcMotor.Direction RIGHT_BACK_MOTOR_DIRECTION = DcMotor.Direction.FORWARD;
 
-        public double X_VELOCITY = 60.4577684779282;
-        public double Y_VELOCITY = 48.871302326833174; // Set to X initially, tune if needed
+        public double X_VELOCITY = 64.1809860589936;
+        public double Y_VELOCITY = 52.84026090366634; // Set to X initially, tune if needed
 
         public final String VOLTAGE_SENSOR_NAME = "Control Hub";
 
@@ -66,8 +66,8 @@ public class Constants {
             .distanceUnit(DistanceUnit.INCH)
             .hardwareMapName("pinpoint")
             .encoderResolution(GoBildaPinpointDriver.GoBildaOdometryPods.goBILDA_4_BAR_POD)
-            .forwardEncoderDirection(GoBildaPinpointDriver.EncoderDirection.REVERSED)
-            .strafeEncoderDirection(GoBildaPinpointDriver.EncoderDirection.REVERSED);
+            .forwardEncoderDirection(GoBildaPinpointDriver.EncoderDirection.FORWARD)
+            .strafeEncoderDirection(GoBildaPinpointDriver.EncoderDirection.FORWARD);
 
     /**
      * Creates a Follower instance with the new CombinedLocalizer.
