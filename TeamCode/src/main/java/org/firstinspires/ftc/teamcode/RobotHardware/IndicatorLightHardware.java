@@ -19,9 +19,9 @@ public class IndicatorLightHardware {
     private static final long BLINK_HALF_PERIOD_MS = 500; // 0.5 seconds, for a 1Hz blink frequency
 
     // State management
-    private enum LightState { OFF, RED, GREEN, BLUE, BLINKING }
-    private LightState currentState = LightState.OFF;
-    private LightState returnState = LightState.OFF;
+    private enum LightState { STATIC, BLINKING }
+    private LightState currentState = LightState.STATIC;
+    private double staticColor = COLOR_OFF; // The color to show when not blinking
     private double blinkColor = COLOR_OFF;
 
     private final ElapsedTime blinkTimer = new ElapsedTime();
@@ -34,30 +34,36 @@ public class IndicatorLightHardware {
         } catch (Exception e) {
             indicatorLight = null;
         }
-        setOff();
+        setStaticColor(COLOR_OFF); // Start with the light off
     }
 
     public void update() {
         if (isBlinking) {
-            // Simple blink effect: toggle on and off based on the half period
-            if (blinkTimer.milliseconds() < blinkDuration) {
-                if (((int)(blinkTimer.milliseconds() / BLINK_HALF_PERIOD_MS)) % 2 == 0) {
-                    setPosition(blinkColor);
-                } else {
-                    setPosition(COLOR_OFF);
-                }
-            } else {
-                // Blinking finished, revert to the previous state
+            // If the blink duration has expired...
+            if (blinkTimer.milliseconds() >= blinkDuration) {
                 isBlinking = false;
-                currentState = returnState;
-                applyState();
+                // ...revert to the last set static color.
+                setValue(staticColor);
+            } else {
+                // Otherwise, continue blinking by toggling between the blink color and OFF.
+                if (((long)(blinkTimer.milliseconds() / BLINK_HALF_PERIOD_MS)) % 2 == 0) {
+                    setValue(blinkColor);
+                } else {
+                    setValue(COLOR_OFF);
+                }
             }
         }
     }
 
+    /**
+     * Blinks a specific color for a set number of seconds, then returns to the previous static color.
+     * @param color The color to blink (e.g., COLOR_RED).
+     * @param seconds The duration of the blinking.
+     */
     public void blink(double color, double seconds) {
+        // If not already blinking, we store the current static color so we can return to it.
         if (!isBlinking) {
-            returnState = currentState;
+            // The return state is implicitly the 'staticColor' variable.
         }
         isBlinking = true;
         blinkColor = color;
@@ -65,55 +71,45 @@ public class IndicatorLightHardware {
         blinkTimer.reset();
     }
 
-    public void setGreen() {
+    /**
+     * Sets the indicator to a solid, non-blinking color.
+     * This will also be the color the light returns to after a blink is finished.
+     * @param color The desired static color (e.g., COLOR_BLUE).
+     */
+    public void setStaticColor(double color) {
+        this.staticColor = color;
+        // If we aren't in the middle of a blink, apply the color immediately.
         if (!isBlinking) {
-            currentState = LightState.GREEN;
-            applyState();
+            currentState = LightState.STATIC;
+            setValue(staticColor);
         }
+    }
+
+    // --- Convenience methods (Optional, but good for compatibility) ---
+
+    public void setGreen() {
+        setStaticColor(COLOR_GREEN);
     }
 
     public void setRed() {
-        if (!isBlinking) {
-            currentState = LightState.RED;
-            applyState();
-        }
+        setStaticColor(COLOR_RED);
     }
 
     public void setBlue() {
-        if (!isBlinking) {
-            currentState = LightState.BLUE;
-            applyState();
-        }
+        setStaticColor(COLOR_BLUE);
     }
 
     public void setOff() {
-        if (!isBlinking) {
-            currentState = LightState.OFF;
-            applyState();
-        }
+        setStaticColor(COLOR_OFF);
     }
 
-    private void applyState() {
-        switch (currentState) {
-            case GREEN:
-                setPosition(COLOR_GREEN);
-                break;
-            case RED:
-                setPosition(COLOR_RED);
-                break;
-            case BLUE:
-                setPosition(COLOR_BLUE);
-                break;
-            case OFF:
-            default:
-                setPosition(COLOR_OFF);
-                break;
-        }
-    }
-
-    private void setPosition(double position) {
+    /**
+     * Directly sets the light value. This is the single point of control.
+     * The GoBilda Indicator light takes a value from 0 to 1, treating it like a servo by setting a position.
+     */
+    private void setValue(double value) {
         if (indicatorLight != null) {
-            indicatorLight.setPosition(position);
+            indicatorLight.setPosition(value);
         }
     }
 }

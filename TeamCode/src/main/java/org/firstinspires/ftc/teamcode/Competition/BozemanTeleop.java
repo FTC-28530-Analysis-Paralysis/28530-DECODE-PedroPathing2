@@ -1,8 +1,8 @@
 package org.firstinspires.ftc.teamcode.Competition;
 
-import com.pedropathing.follower.Follower;import com.pedropathing.geometry.BezierLine;
+import com.pedropathing.follower.Follower;
+import com.pedropathing.geometry.BezierLine;
 import com.pedropathing.geometry.Pose;
-import com.pedropathing.localization.Localizer;
 import com.pedropathing.paths.Path;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
@@ -17,32 +17,45 @@ import org.firstinspires.ftc.teamcode.pedroPathing.CombinedLocalizer;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 
 /**
- * Main TeleOp class for the DECODE robot.
+ * ---------------------------------------------------------------------------------
+ * --- MASTER CHECKLIST AND CHANGELOG ---
+ * ---------------------------------------------------------------------------------
+ * This is the central guide for ensuring the DECODE robot is competition-ready.
  *
- * This class integrates all hardware and software components to create a feature-rich,
- * driver-controlled experience. It is designed to be robust, with safety features
- * to handle localization failures and a clear separation of concerns between driver
- * input, action sequencing, and hardware control.
+ * -- V1.1 CHANGELOG --
+ * - Implemented robust initialization with `init_loop` to allow pre-match selection
+ *   of Alliance and Starting Position. This ensures a valid field pose even if
+ *   Autonomous is not run.
+ * - Refactored `start()` method to intelligently set the starting pose by first
+ *   checking `GameState` and then falling back to selected presets.
+ * - Centralized the `CombinedLocalizer` instance within TeleOp, allowing direct access
+ *   to `isPoseReliable` and `resetHeading` for safer and more intuitive operation.
+ * - Added comprehensive Javadoc and inline comments to improve code clarity and
+ *   maintainability for all team members.
+ * - Removed automatic drive mode switching when localization is lost, giving the driver
+ *   full control, while retaining a safety lock on the Auto-Park feature.
  *
- * --- KEY FEATURES ---
- * - Advanced Drive Control:
- *   - ROBOT_CENTRIC: Standard, intuitive control.
- *   - FIELD_CENTRIC: Forward is always downfield.
- *   - TARGET_LOCK: Automatically aims the robot at the correct alliance goal.
- * - Dynamic Launcher Speed:
- *   - The launcher speed is continuously and automatically adjusted based on the
- *     robot's distance to the goal, allowing for accurate shots from anywhere on the field.
- * - Robust Safety System:
- *   - The robot continuously monitors localization reliability. If the pose becomes
- *     unreliable (e.g., from a disconnected camera or bad data), it automatically
- *     reverts to a safe ROBOT_CENTRIC drive mode and disables features that depend
- *     on an accurate field position (like Target Lock and Auto-Park).
- * - Centralized Action Management:
- *   - Complex, timed sequences (like firing an Artifact) are handled by the
- *     ActionManager, keeping this TeleOp class clean and focused on driver input.
+ * -- MASTER TUNING AND TESTING CHECKLIST --
+ * DRIVETRAIN & LOCALIZATION:
+ * [x] ODOMETRY/LOCALIZER INSTANCE: Verify `CombinedLocalizer` is created in `BozemanTeleop`
+ *     and passed to the Follower.
+ * [x] `isPoseReliable` LOGIC: Confirm `isPoseReliable` is set to `false` on resets and `true`
+ *     only after a valid Limelight vision update in `CombinedLocalizer`.
+ * [x] SAFETY CHECKS: Ensure Auto-Park (`B` button) is guarded by an `isPoseReliable()` check.
  *
- * --- BUTTON MAPPINGS (GAMEPAD 1) ---
+ * LAUNCHER & SEQUENCES:
+ * [ ] LAUNCHER SPEED: Tune the launcher's automatic speed control in `LauncherHardware`
+ *     based on distance to the goal.
+ * [ ] ACTION TIMING: Tune all `timer.seconds()` durations in `ActionManager` for intake,
+ *     transfer, and launch sequences to ensure they are fast and reliable.
  *
+ * GAME & FIELD SPECIFIC:
+ * [ ] FIELD POSES: Verify all `FieldPosePresets` (e.g., `BLUE_FRONT_START`, `RED_BASE`)
+ *     are accurate on a physical field.
+ * [x] STARTING LOGIC: Test the new `init_loop` and `start()` logic to confirm the robot
+ *     correctly sets its pose for all Alliance/Start Position combinations.
+ *
+ * --- CONTROLLER LAYOUT (GAMEPAD 1) ---
  * [Driving]
  * Left Stick:  Translate (forward/backward/strafe)
  * Right Stick: Rotate
@@ -59,70 +72,114 @@ import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
  * [System & Drive Modes]
  * D-Pad Right:   Cycle through drive modes (Robot-Centric -> Field-Centric -> Target-Lock)
  * D-Pad Down:    Toggle Artifact Diverter (for scoring in the correct goal)
- * Start Button:  Manually reset heading and return to ROBOT_CENTRIC drive.
+ * Start Button:  Manually reset heading to 90 degrees.
  * Back Button:   Switch alliance (Red/Blue) for aiming and parking.
- * B Button:      Initiate Auto-Park sequence (if localization is reliable).
- *
+ * B Button:      Initiate Auto-Park sequence (only if localization is reliable).
  */
 @TeleOp(name = "BozemanTeleop", group = "01 Bozeman")
 public class BozemanTeleop extends OpMode {
 
     // Core robot hardware and software components
-    RobotHardwareContainer robot;
-    ActionManager actionManager;
-    CombinedLocalizer localizer; // Use CombinedLocalizer directly
-    Follower follower;
-    DriverAssist driverAssist;
+    private RobotHardwareContainer robot;
+    private ActionManager actionManager;
+    private CombinedLocalizer localizer; // The single, authoritative localizer instance
+    private Follower follower;
+    private DriverAssist driverAssist;
 
     // State machine enums for this OpMode
     private enum TeleOpState { MANUAL, AUTO_PARK }
     private enum DiverterState { PURPLE, GREEN }
+    private enum StartPosition { FRONT, BACK }
 
-    // State variables for this OpMode
+    // State variables
     private TeleOpState currentState = TeleOpState.MANUAL;
-    private DiverterState diverterState = DiverterState.GREEN; // Default state
-
-    // Button press state tracker for the trigger (which lacks a wasPressed method)
+    private DiverterState diverterState = DiverterState.GREEN;
+    private StartPosition startPosition = StartPosition.FRONT; // Default starting position
     private boolean left_trigger_pressed = false;
 
     /**
      * Code to run ONCE when the driver hits INIT.
-     * Initializes all robot hardware, software modules, and sets default states.
+     * Initializes hardware and sets up a default alliance.
      */
     @Override
     public void init() {
         // Initialize all hardware and software modules
         robot = new RobotHardwareContainer(hardwareMap, telemetry);
         actionManager = new ActionManager(robot);
-        localizer = new CombinedLocalizer(hardwareMap, telemetry); // Create the localizer here
+        localizer = new CombinedLocalizer(hardwareMap, telemetry); // Create the single localizer instance
         follower = Constants.createFollower(hardwareMap, localizer); // Pass it to the follower
         driverAssist = new DriverAssist(follower);
 
-        // Default to Blue alliance if not set by an Autonomous OpMode
+        // If alliance wasn't set by a previous OpMode, default to Blue.
+        // This can be changed in init_loop().
         if (GameState.alliance == GameState.Alliance.UNKNOWN) {
             GameState.alliance = GameState.Alliance.BLUE;
         }
 
-        // Display driver instructions on the Driver Station
-        telemetry.addLine("TeleOp Initialized. Let's DECODE!");
-        telemetry.addLine("Press START to reset heading.");
-        telemetry.addLine("Press B for Auto-Park.");
+        telemetry.addLine("Bozeman TeleOp Initialized.");
+        telemetry.addLine("IN INIT: Use D-Pad to select Alliance and Start Position.");
         telemetry.update();
     }
 
     /**
-     * Code to run REPEATEDLY after the driver hits PLAY but before they hit STOP.
-     * This is the main loop of the TeleOp.
+     * Code to run REPEATEDLY during the init phase, before START is pressed.
+     * This allows the driver to select the alliance and starting position.
+     */
+    @Override
+    public void init_loop() {
+        // Allow alliance and starting position selection before the match begins.
+        if (gamepad1.dpad_left || gamepad2.dpad_left) {
+            GameState.alliance = GameState.Alliance.BLUE;
+            robot.indicatorLight.setStaticColor(IndicatorLightHardware.COLOR_BLUE);
+        }
+        if (gamepad1.dpad_right || gamepad2.dpad_right) {
+            GameState.alliance = GameState.Alliance.RED;
+            robot.indicatorLight.setStaticColor(IndicatorLightHardware.COLOR_RED);
+        }
+        if (gamepad1.dpad_up || gamepad2.dpad_up) startPosition = StartPosition.BACK;
+        if (gamepad1.dpad_down || gamepad2.dpad_down) startPosition = StartPosition.FRONT;
+
+        // Provide continuous feedback on the driver station
+        telemetry.addData("Selected Alliance", GameState.alliance);
+        telemetry.addData("Selected Start", startPosition);
+        telemetry.addLine("\nReady to START!");
+        telemetry.update();
+    }
+
+    /**
+     * Code to run ONCE when the driver hits PLAY.
+     * Sets the definitive starting pose for the robot.
+     */
+    @Override
+    public void start() {
+        // Set the starting pose with a clear order of precedence:
+        // 1. Use the pose from Autonomous if it exists.
+        if (GameState.currentPose != null) {
+            localizer.setStartPose(GameState.currentPose);
+        }
+        // 2. Otherwise, fall back to the presets selected during init_loop().
+        else if (GameState.alliance == GameState.Alliance.RED) {
+            localizer.setStartPose((startPosition == StartPosition.FRONT) ? FieldPosePresets.RED_FRONT_START : FieldPosePresets.RED_BACK_START);
+        } else { // Alliance is BLUE
+            localizer.setStartPose((startPosition == StartPosition.FRONT) ? FieldPosePresets.BLUE_FRONT_START : FieldPosePresets.BLUE_BACK_START);
+        }
+
+        // The first update call populates the follower with the correct starting pose
+        follower.update();
+    }
+
+    /**
+     * Main TeleOp loop, runs REPEATEDLY after PLAY is pressed.
      */
     @Override
     public void loop() {
-        // Core robot updates. These must be called in every loop.
-        follower.update(); // Updates odometry and path following
-        actionManager.update(); // Updates any running timed actions
+        // Core robot updates must be called in every loop.
+        follower.update(); // Updates odometry and path following logic
+        actionManager.update(); // Updates any running timed action sequences
         robot.launcher.update(follower.getPose()); // Updates launcher speed based on distance
         robot.indicatorLight.update(); // Updates indicator light animations
 
-        // Main state machine for TeleOp
+        // Main state machine for switching between manual control and auto-park.
         switch (currentState) {
             case MANUAL:
                 handleManualControls();
@@ -139,10 +196,10 @@ public class BozemanTeleop extends OpMode {
      * Handles all manual, driver-controlled actions.
      */
     private void handleManualControls() {
-        // Pass joystick inputs to the DriverAssist module
+        // Pass joystick inputs to the DriverAssist module to calculate drive power
         driverAssist.update(-gamepad1.left_stick_y, gamepad1.left_stick_x, gamepad1.right_stick_x);
 
-        // --- Delegate to specific control handlers for organization ---
+        // Delegate to specific handlers for better organization
         handleIntakeControls();
         handleLauncherControls();
         handleFeederControls();
@@ -150,10 +207,10 @@ public class BozemanTeleop extends OpMode {
     }
 
     /**
-     * Manages intake and eject controls.
+     * Manages intake motor controls (On/Off and Reverse).
      */
     private void handleIntakeControls() {
-        // Eject/Reverse on Left Trigger. Needs manual edge detection because it's an analog input.
+        // Eject/Reverse on Left Trigger. Uses manual edge detection as it's an analog input.
         boolean leftTriggerIsPressed = gamepad1.left_trigger > 0.1;
         if (leftTriggerIsPressed && !left_trigger_pressed) {
             actionManager.reverseAll();
@@ -164,7 +221,7 @@ public class BozemanTeleop extends OpMode {
         }
         left_trigger_pressed = leftTriggerIsPressed;
 
-        // Toggle Intake on/off with the 'A' button.
+        // Toggle Intake on/off with the 'A' button, but not if ejecting.
         if (gamepad1.aWasPressed() && !leftTriggerIsPressed) {
             if (actionManager.getCurrentState() == ActionManager.ActionState.INTAKING) {
                 actionManager.stopAll();
@@ -175,7 +232,7 @@ public class BozemanTeleop extends OpMode {
     }
 
     /**
-     * Manages launcher and drive mode controls.
+     * Manages the launcher flywheel motors and drive mode switching.
      */
     private void handleLauncherControls() {
         // Toggle launcher on/off with the 'Y' button.
@@ -187,7 +244,8 @@ public class BozemanTeleop extends OpMode {
             }
         }
 
-        // Cycle through drive modes, with no restrictions.
+        // Cycle through drive modes. No reliability check is needed here, giving the
+        // driver full control to use any mode they see fit.
         if (gamepad1.dpadRightWasPressed()) {
             switch (driverAssist.getMode()) {
                 case ROBOT_CENTRIC:
@@ -204,11 +262,11 @@ public class BozemanTeleop extends OpMode {
     }
 
     /**
-     * Manages the control to fire an Artifact.
+     * Manages the control to fire an Artifact from the feeder.
      */
     private void handleFeederControls() {
-        // Fire an artifact when a bumper is pressed.
-        // The ActionManager handles the logic of waiting for the launcher to be at speed.
+        // Fire an artifact when either bumper is pressed. The ActionManager handles the
+        // logic of waiting for the launcher to be at the correct speed.
         if (gamepad1.left_bumper || gamepad1.right_bumper) {
             actionManager.fireArtifactWhenReady();
         }
@@ -225,9 +283,9 @@ public class BozemanTeleop extends OpMode {
             robot.indicatorLight.blink(blinkColor, 2); // Blink to confirm selection
         }
 
-        // Manual Heading and Drive Mode Reset
+        // Manual Heading Reset
         if (gamepad1.startWasPressed()) {
-            localizer.resetHeading(); // Call resetHeading on the localizer instance
+            localizer.resetHeading(); // Resets heading to 90 degrees and marks pose as unreliable
             robot.indicatorLight.blink(IndicatorLightHardware.COLOR_BLUE, 1.5); // Blink to confirm reset
         }
 
@@ -242,7 +300,8 @@ public class BozemanTeleop extends OpMode {
             }
         }
 
-        // Trigger the Auto-Park sequence with the 'B' button, but only if localization is reliable.
+        // Trigger the Auto-Park sequence, ONLY if localization is reliable.
+        // This is the primary safety check to prevent autonomous movement with a bad pose.
         if (gamepad1.bWasPressed() && localizer.isPoseReliable()) {
             Pose parkPose = (GameState.alliance == GameState.Alliance.BLUE) ? FieldPosePresets.BLUE_BASE : FieldPosePresets.RED_BASE;
             Pose currentPose = follower.getPose();
@@ -255,7 +314,7 @@ public class BozemanTeleop extends OpMode {
 
     /**
      * Handles the autonomous parking state, waiting for the path to complete.
-     * Allows the driver to interrupt by moving the joysticks.
+     * Allows the driver to interrupt at any time by moving the joysticks.
      */
     private void handleAutoPark() {
         telemetry.addLine("--- AUTO-PARKING ---");
@@ -271,7 +330,7 @@ public class BozemanTeleop extends OpMode {
     }
 
     /**
-     * Updates all the telemetry on the Driver Station screen.
+     * Updates all telemetry on the Driver Station screen.
      */
     private void updateTelemetry() {
         if (!localizer.isPoseReliable()) {
@@ -283,8 +342,11 @@ public class BozemanTeleop extends OpMode {
         telemetry.addData("Alliance", GameState.alliance.toString());
         telemetry.addData("Launcher Target RPM", "%.1f", robot.launcher.getTargetRPM());
         telemetry.addData("Launcher Actual RPM", "%.1f", robot.launcher.getLeftFlywheelRPM());
-        if (localizer.isPoseReliable()) {
-            telemetry.addData("Pose", "X: %.2f, Y: %.2f, H: %.1f", follower.getPose().getX(), follower.getPose().getY(), Math.toDegrees(follower.getPose().getHeading()));
+
+        // Only display the pose if it's considered reliable.
+        Pose currentPose = follower.getPose();
+        if (localizer.isPoseReliable() && currentPose != null) {
+            telemetry.addData("Pose", "X: %.2f, Y: %.2f, H: %.1f", currentPose.getX(), currentPose.getY(), Math.toDegrees(currentPose.getHeading()));
         }
     }
 }
