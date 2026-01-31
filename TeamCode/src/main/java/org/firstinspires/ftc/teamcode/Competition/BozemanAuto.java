@@ -55,11 +55,11 @@ public class BozemanAuto extends OpMode {
      * Each command represents a complete action, like moving to a spike and intaking.
      */
     private enum AutoCommand {
+        SCORE_ALL_THREE_CLOSE,
+        SCORE_ALL_THREE_FAR,
         SPIKE_FRONT_AND_INTAKE,
         SPIKE_MIDDLE_AND_INTAKE,
         SPIKE_BACK_AND_INTAKE,
-        SCORE_ALL_THREE_CLOSE,
-        SCORE_ALL_THREE_FAR,
         HIT_GATE,
         PARK
     }
