@@ -200,6 +200,7 @@ public class BozemanAuto extends OpMode {
         telemetry.addData("Executing Step", (currentCommandIndex + 1) + " of " + autoCommands.size());
         telemetry.addData("Command", (currentCommandIndex < autoCommands.size()) ? autoCommands.get(currentCommandIndex) : "DONE");
         telemetry.addData("Path State", pathState);
+        telemetry.addData("Pose", follower.getPose());
         telemetry.update();
     }
 
@@ -301,7 +302,7 @@ public class BozemanAuto extends OpMode {
                         advanceToNextCommand();      // ...then this command is done.
                     } else { // Otherwise, move to the next artifact in the stack.
                         double offset = (alliance == GameState.Alliance.BLUE) ? -INTAKE_OFFSET_DISTANCE : INTAKE_OFFSET_DISTANCE;
-                        Pose nextArtifactPose = follower.getPose().plus(new Pose(0, offset, 0));
+                        Pose nextArtifactPose = follower.getPose().plus(new Pose(offset, 0, 0));
                         follower.followPath(new Path(new BezierLine(follower.getPose(), nextArtifactPose)));
                         setPathState(301); // Go back and set diverter for the next artifact.
                     }
