@@ -181,6 +181,7 @@ public class BozemanAuto extends OpMode {
         } else {
             setPathState(-1); // No commands, end immediately
         }
+        follower.update();
     }
 
     /**
