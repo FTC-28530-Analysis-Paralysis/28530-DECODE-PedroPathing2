@@ -167,7 +167,9 @@ public class BozemanTeleop extends OpMode {
         }
 
         // The first update call populates the follower with the correct starting pose
+
         follower.update();
+        follower.startTeleOpDrive();
     }
 
     /**
