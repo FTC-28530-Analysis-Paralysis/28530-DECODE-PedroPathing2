@@ -21,7 +21,7 @@ public class ColorDiverterHardware {
     GatePosition gatePosition = GatePosition.PURPLE;
 
     public void init(HardwareMap hardwareMap) {
-        diverterServo = hardwareMap.get(Servo.class, "colorDiverter");
+        diverterServo = hardwareMap.get(Servo.class, "diverter");
 
     }
 

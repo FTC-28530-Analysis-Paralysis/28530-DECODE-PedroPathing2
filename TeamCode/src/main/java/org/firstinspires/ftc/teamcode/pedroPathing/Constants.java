@@ -25,10 +25,10 @@ public class Constants {
             .forwardZeroPowerAcceleration(-28)
             .lateralZeroPowerAcceleration(-59)
             .translationalPIDFCoefficients(new PIDFCoefficients(0.1, 0, 0.01, 0.02))
-            .headingPIDFCoefficients(new PIDFCoefficients(1, 0, .1, 0.06))
-            .drivePIDFCoefficients(new FilteredPIDFCoefficients(0.1, 0, 0.01, 0.6, 0.03));
+            .headingPIDFCoefficients(new PIDFCoefficients(0.375, 0, .1, 0.06))
+            .drivePIDFCoefficients(new FilteredPIDFCoefficients(0.73, 0.0254, 0.0001, 0.6, 0.00263));
 
-    public static PathConstraints pathConstraints = new PathConstraints(0.99, 100, 1, 1);
+    public static PathConstraints pathConstraints = new PathConstraints(0.99, 100, 1.45, 1.28);
 
     public static class CustomDriveConstants {
         public final String LEFT_FRONT_MOTOR_NAME = "left_front_drive";
