@@ -16,6 +16,8 @@ import com.bylazar.field.Style;
 import com.bylazar.telemetry.PanelsTelemetry;
 import com.bylazar.telemetry.TelemetryManager;
 import com.pedropathing.follower.Follower;
+import com.pedropathing.ftc.localization.constants.PinpointConstants;
+import com.pedropathing.ftc.localization.localizers.PinpointLocalizer;
 import com.pedropathing.geometry.*;
 import com.pedropathing.math.*;
 import com.pedropathing.paths.*;
@@ -37,7 +39,7 @@ import java.util.List;
 @TeleOp(name = "Tuning", group = "Pedro Pathing")
 public class Tuning extends SelectableOpMode {
     public static Follower follower;
-    public static CombinedLocalizer localizer;
+    public static PinpointLocalizer localizer;
 
     @IgnoreConfigurable
     static PoseHistory poseHistory;
@@ -78,7 +80,7 @@ public class Tuning extends SelectableOpMode {
 
     @Override
     public void onSelect() {
-        localizer = new CombinedLocalizer(hardwareMap, telemetry);
+        localizer = new PinpointLocalizer(hardwareMap, new PinpointConstants());
         follower = Constants.createFollower(hardwareMap, localizer);
         PanelsConfigurables.INSTANCE.refreshClass(this);
 

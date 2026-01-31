@@ -152,3 +152,4 @@ public class CustomPinpointLocalizer implements Localizer {
         poseHistory.clear();
     }
 }
+

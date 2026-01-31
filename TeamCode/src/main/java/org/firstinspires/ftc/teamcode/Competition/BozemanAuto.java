@@ -1,6 +1,8 @@
 package org.firstinspires.ftc.teamcode.Competition;
 
 import com.pedropathing.follower.Follower;
+import com.pedropathing.ftc.localization.constants.PinpointConstants;
+import com.pedropathing.ftc.localization.localizers.PinpointLocalizer;
 import com.pedropathing.geometry.BezierLine;
 import com.pedropathing.geometry.Pose;
 import com.pedropathing.paths.Path;
@@ -79,7 +81,7 @@ public class BozemanAuto extends OpMode {
     private boolean isPlaylistFinalized = false; // A flag to lock the playlist from accidental changes
 
     // ========== OPMODE CORE MEMBERS ========== //
-    private CombinedLocalizer localizer;        // The combined localizer for localization
+    private PinpointLocalizer localizer;        // The combined localizer for localization
     private Follower follower;                  // The Pedro Pathing follower for path execution
     private ElapsedTime timer = new ElapsedTime(); // A general-purpose timer
     private RobotHardwareContainer robot;       // Container for all robot hardware
@@ -108,7 +110,7 @@ public class BozemanAuto extends OpMode {
     public void init() {
         robot = new RobotHardwareContainer(hardwareMap, telemetry);
         actionManager = new ActionManager(robot);
-        localizer = new CombinedLocalizer(hardwareMap, telemetry);
+        localizer = new PinpointLocalizer(hardwareMap, new PinpointConstants());
         follower = Constants.createFollower(hardwareMap, localizer);
 
         telemetry.addLine("--- Playlist Autonomous Builder ---");
