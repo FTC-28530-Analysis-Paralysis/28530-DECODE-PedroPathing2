@@ -5,6 +5,7 @@ import com.pedropathing.control.PIDFCoefficients;
 import com.pedropathing.follower.Follower;
 import com.pedropathing.follower.FollowerConstants;
 import com.pedropathing.ftc.FollowerBuilder;
+import com.pedropathing.ftc.localization.constants.PinpointConstants;
 import com.pedropathing.localization.Localizer;
 import com.pedropathing.geometry.Pose;
 import com.pedropathing.math.Vector;
@@ -60,7 +61,16 @@ public class Constants {
     }
 
     public static CustomDriveConstants customDriveConstants = new CustomDriveConstants();
-    
+
+    public static PinpointConstants localizerConstants = new PinpointConstants()
+            .forwardPodY(-3.25)
+            .strafePodX(-6.625)
+            .distanceUnit(DistanceUnit.INCH)
+            .hardwareMapName("pinpoint")
+            .encoderResolution(GoBildaPinpointDriver.GoBildaOdometryPods.goBILDA_4_BAR_POD)
+            .forwardEncoderDirection(GoBildaPinpointDriver.EncoderDirection.FORWARD)
+            .strafeEncoderDirection(GoBildaPinpointDriver.EncoderDirection.FORWARD);
+
     /**
      * Creates a new Follower instance with a complete, fused localization system.
      *
@@ -70,7 +80,8 @@ public class Constants {
      */
     public static Follower createFollower(HardwareMap hardwareMap, Localizer localizer) {
         return new FollowerBuilder(followerConstants, hardwareMap)
-                .setLocalizer(localizer) // Use the provided localizer
+                //.setLocalizer(localizer) // Use the provided localizer
+                .pinpointLocalizer(localizerConstants)
                 .pathConstraints(pathConstraints)
                 .setDrivetrain(new CustomMecanumDrive(hardwareMap, customDriveConstants))
                 .build();
