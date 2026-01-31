@@ -204,7 +204,10 @@ public class BozemanAuto extends OpMode {
         telemetry.addData("Executing Step", (currentCommandIndex + 1) + " of " + autoCommands.size());
         telemetry.addData("Command", (currentCommandIndex < autoCommands.size()) ? autoCommands.get(currentCommandIndex) : "DONE");
         telemetry.addData("Path State", pathState);
-        telemetry.addData("Pose", follower.getPose());
+        telemetry.addData("Pose", "%.2f, %.2f, %.1f", follower.getPose());
+
+        //telemetry.addData("Pose", "X: %.2f, Y: %.2f, H: %.1f", follower.getPose().getX(), follower.getPose().getY(), Math.toDegrees(follower.getPose().getHeading()));
+
         telemetry.update();
     }
 
