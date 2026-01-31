@@ -175,6 +175,10 @@ public class BozemanAuto extends OpMode {
         // Store the selected alliance so TeleOp can use it.
         GameState.alliance = this.alliance;
 
+        // Spin up the intake and launcher at the start of autonomous
+        actionManager.startIntake();
+        robot.launcher.start();
+
         calculatePoses(); // Determine all field coordinates based on alliance/start pos
         follower.setStartingPose(startPose);
         currentCommandIndex = 0;
