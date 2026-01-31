@@ -3,92 +3,144 @@ package org.firstinspires.ftc.teamcode.pedroPathing;
 import com.pedropathing.localization.Localizer;
 import com.pedropathing.geometry.Pose;
 import com.pedropathing.math.Vector;
-
+import com.qualcomm.robotcore.hardware.HardwareMap;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
+import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 
 import java.util.Optional;
 
 /**
  * A fused localizer that orchestrates corrections between a dead-wheel localizer
- * (PinpointHardware) and a vision localizer (LimelightAprilTagLocalizer).
+ * (CustomPinpointLocalizer) and a vision localizer (LimelightAprilTagLocalizer).
+ * This class implements the Localizer interface and is the single source of truth for the
+ * robot's position on the field.
  */
-public class CombinedLocalizer implements Localizer { 
+public class CombinedLocalizer implements Localizer {
 
     private final CustomPinpointLocalizer pinpoint;
     private final LimelightAprilTagLocalizer limelight;
-    private final Telemetry telemetry;
+    private final Telemetry telemetry; // This can be null
+
+    // --- Constants for Fusion and Outlier Rejection ---
+    // The maximum allowed difference between odometry and vision poses to be considered valid.
+    private static final double MAX_ALLOWED_DEVIATION_INCHES = 6.0;
+    private static final double MAX_ALLOWED_HEADING_DEVIATION_RADIANS = Math.toRadians(10);
+
+    // The weight given to the vision measurement when fusing. 0.0 = 100% odometry, 1.0 = 100% vision.
+    // A small value like 0.1 provides smooth correction.
+    private static final double FUSION_ALPHA = 0.1;
+    // ----------------------------------------------------
 
     private boolean isPoseReliable = false;
 
-    // Running totals for error correction diagnostics
-    private double totalTranslationalError = 0.0;
-    private double totalHeadingError = 0.0;
+    // --- New members for tracking total correction ---
+    private double totalCorrectionX = 0.0;
+    private double totalCorrectionY = 0.0;
+    private double totalCorrectionHeading = 0.0;
+    // ----------------------------------------------------
 
-    public CombinedLocalizer(CustomPinpointLocalizer pinpoint, LimelightAprilTagLocalizer limelight, Telemetry telemetry) {
-        this.pinpoint = pinpoint;
-        this.limelight = limelight;
+    public CombinedLocalizer(HardwareMap hardwareMap, Telemetry telemetry) {
+        this.pinpoint = new CustomPinpointLocalizer(hardwareMap, new CustomPinpointConstants());
+        this.limelight = new LimelightAprilTagLocalizer(hardwareMap, new LimelightConstants(), telemetry);
         this.telemetry = telemetry;
     }
 
     @Override
     public void update() {
+        // First, always update the primary dead-wheel localizer to populate its pose history.
         pinpoint.update();
-        Optional<LimelightAprilTagLocalizer.LimelightPoseData> limelightPoseData = limelight.getRobotPoseWithLatency();
-        if (limelightPoseData.isPresent()) {
-            LimelightAprilTagLocalizer.LimelightPoseData data = limelightPoseData.get();
 
-            // Validity check to prevent corrupting the pose with an invalid (0,0,0) from Limelight
-            if (data.pose.getX() == 0 && data.pose.getY() == 0 && data.pose.getHeading() == 0) {
-                telemetry.addData("Localization", "Rejected invalid (0,0,0) vision pose.");
-                return; // Do not apply this invalid correction
+        // Attempt to get a pose from the vision system.
+        Optional<LimelightAprilTagLocalizer.LimelightPoseData> limelightPoseData = limelight.getLatestPoseWithLatency();
+
+        // If the vision system has a valid pose, attempt to fuse it.
+        if (limelightPoseData.isPresent()) {
+            LimelightAprilTagLocalizer.LimelightPoseData visionData = limelightPoseData.get();
+            Pose visionPose = visionData.pose;
+            double visionLatency = visionData.latency;
+
+            // Get the historical odometry pose at the moment the Limelight captured its image.
+            Pose historicalOdomPose = pinpoint.getPoseAtLatency(visionLatency);
+
+            // This is the crucial step: Compare the vision pose to our HISTORICAL odometry pose.
+            double deviation = historicalOdomPose.distanceFrom(visionPose);
+            double headingDeviation = Math.abs(AngleUnit.normalizeRadians(historicalOdomPose.getHeading() - visionPose.getHeading()));
+
+            if (telemetry != null) {
+                telemetry.addData("LL Latency", "%.1f ms", visionLatency * 1000);
+                telemetry.addData("LL Deviation", "%.2f in, %.1f deg", deviation, Math.toDegrees(headingDeviation));
             }
 
-            Pose pinpointPoseAtLatency = pinpoint.getPoseAtLatency(data.latency);
-            Pose error = data.pose.minus(pinpointPoseAtLatency);
+            // --- Outlier Rejection ---
+            if (deviation < MAX_ALLOWED_DEVIATION_INCHES && headingDeviation < MAX_ALLOWED_HEADING_DEVIATION_RADIANS) {
+                // The vision data is trustworthy. Let's fuse it.
 
-            // Calculate and accumulate the error for diagnostics
-            totalTranslationalError += Math.hypot(error.getX(), error.getY());
-            totalHeadingError += Math.abs(Math.toDegrees(error.getHeading()));
+                // Calculate the positional error between the vision pose and where we thought we were in the past.
+                Pose error = visionPose.minus(historicalOdomPose);
 
-            Pose correctedPose = pinpoint.getPose().plus(error);
-            setPose(correctedPose); // Use this.setPose() to ensure reliability flag is set
-            pinpoint.clearPoseHistory();
-            telemetry.addData("Localization", "Applying vision correction.");
+                // --- Calculate the amount of correction to apply for this frame ---
+                double correctionX = error.getX() * FUSION_ALPHA;
+                double correctionY = error.getY() * FUSION_ALPHA;
+                double correctionHeading = error.getHeading() * FUSION_ALPHA;
+
+                // --- Update total accumulated corrections ---
+                totalCorrectionX += correctionX;
+                totalCorrectionY += correctionY;
+                totalCorrectionHeading += correctionHeading;
+
+                // --- Smoothed Fusion ---
+                // Apply a fraction of this historical error to the CURRENT odometry pose.
+                Pose currentOdomPose = pinpoint.getPose();
+                double fusedX = currentOdomPose.getX() + correctionX;
+                double fusedY = currentOdomPose.getY() + correctionY;
+                double fusedHeading = AngleUnit.normalizeRadians(currentOdomPose.getHeading() + correctionHeading);
+                Pose fusedPose = new Pose(fusedX, fusedY, fusedHeading);
+
+                // Apply the newly corrected pose back to the pinpoint localizer
+                // No need to call setPose here, which would incorrectly set isPoseReliable.
+                // Instead, call the pinpoint's setPose directly.
+                pinpoint.setPose(fusedPose);
+                isPoseReliable = true; // The pose is now reliable after a successful vision correction.
+
+                // After a successful correction, clear the pinpoint's history.
+                pinpoint.clearPoseHistory();
+
+                if (telemetry != null) {
+                    telemetry.addData("Localization", "-> APPLYING VISION CORRECTION <-");
+                }
+            } else {
+                // The deviation is too large. Ignore this Limelight frame as an outlier.
+                if (telemetry != null) {
+                    telemetry.addData("Localization", "Vision outlier REJECTED");
+                }
+            }
         } else {
-            telemetry.addData("Localization", "No vision data.");
+            if (telemetry != null) telemetry.addData("Localization", "No vision data");
         }
 
-        // Always display the running totals for diagnostics
-        telemetry.addData("Total Translation Error", "%.2f in", totalTranslationalError);
-        telemetry.addData("Total Heading Error", "%.2f deg", totalHeadingError);
+        if (telemetry != null) {
+            Pose currentPose = getPose();
+            if(currentPose != null) {
+                telemetry.addData("Robot Pose", "X: %.2f, Y: %.2f, H: %.1f", currentPose.getX(), currentPose.getY(), Math.toDegrees(currentPose.getHeading()));
+            }
+            // Add the accumulated correction telemetry
+            telemetry.addData("Total Correction", "X: %.2f, Y: %.2f, H: %.1f deg", totalCorrectionX, totalCorrectionY, Math.toDegrees(totalCorrectionHeading));
+        }
     }
 
-    /**
-     * Returns true if the current pose is considered reliable (i.e., not a placeholder).
-     */
     public boolean isPoseReliable() {
         return isPoseReliable;
     }
 
-    /**
-     * Resets the robot's heading. If the pose is unknown, it creates an unreliable placeholder.
-     */
     public void resetHeading() {
         Pose currentPose = getPose();
         if (currentPose == null) {
-            // We have no pose, so we create a placeholder. This is NOT reliable.
             setPose(new Pose(0, 0, Math.toRadians(90)));
-            isPoseReliable = false; // Explicitly mark as unreliable
         } else {
-            // We have a real pose, just reset the heading. The position is still good.
             setPose(new Pose(currentPose.getX(), currentPose.getY(), Math.toRadians(90)));
-            // isPoseReliable will be set to true by the call to setPose()
         }
+        isPoseReliable = false; // Explicitly mark as unreliable after any reset
     }
-
-    // ======================================================================================
-    // All other methods simply delegate to the underlying dead-wheel localizer.
-    // ======================================================================================
 
     @Override
     public Pose getPose() {
@@ -98,57 +150,23 @@ public class CombinedLocalizer implements Localizer {
     @Override
     public void setPose(Pose pose) {
         pinpoint.setPose(pose);
-        isPoseReliable = true; // Any time we explicitly set a pose, we assume it's reliable.
-    }
-
-    @Override
-    public Pose getVelocity() {
-        return pinpoint.getVelocity();
-    }
-
-    @Override
-    public Vector getVelocityVector() {
-        return pinpoint.getVelocityVector();
+        isPoseReliable = false; // Setting a pose should require re-validation from vision
     }
 
     @Override
     public void setStartPose(Pose setStart) {
         pinpoint.setStartPose(setStart);
-        isPoseReliable = true;
+        isPoseReliable = true; // Setting a start pose should assume the pose is reliable since it's a preset position or remembered from auto.
     }
 
-    @Override
-    public double getTotalHeading() {
-        return pinpoint.getTotalHeading();
-    }
-
-    @Override
-    public double getForwardMultiplier() {
-        return pinpoint.getForwardMultiplier();
-    }
-
-    @Override
-    public double getLateralMultiplier() {
-        return pinpoint.getLateralMultiplier();
-    }
-
-    @Override
-    public double getTurningMultiplier() {
-        return pinpoint.getTurningMultiplier();
-    }
-
-    @Override
-    public void resetIMU() throws InterruptedException {
-        pinpoint.resetIMU();
-    }
-
-    @Override
-    public double getIMUHeading() {
-        return pinpoint.getIMUHeading();
-    }
-
-    @Override
-    public boolean isNAN() {
-        return pinpoint.isNAN();
-    }
+    // All other methods from the Localizer interface simply delegate to the pinpoint localizer.
+    @Override public Pose getVelocity() { return pinpoint.getVelocity(); }
+    @Override public Vector getVelocityVector() { return pinpoint.getVelocityVector(); }
+    @Override public double getTotalHeading() { return pinpoint.getTotalHeading(); }
+    @Override public double getForwardMultiplier() { return pinpoint.getForwardMultiplier(); }
+    @Override public double getLateralMultiplier() { return pinpoint.getLateralMultiplier(); }
+    @Override public double getTurningMultiplier() { return pinpoint.getTurningMultiplier(); }
+    @Override public void resetIMU() throws InterruptedException { pinpoint.resetIMU(); }
+    @Override public double getIMUHeading() { return pinpoint.getIMUHeading(); }
+    @Override public boolean isNAN() { return pinpoint.isNAN(); }
 }

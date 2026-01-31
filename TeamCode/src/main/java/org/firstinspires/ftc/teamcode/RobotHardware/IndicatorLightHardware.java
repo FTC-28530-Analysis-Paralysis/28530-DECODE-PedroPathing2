@@ -12,6 +12,7 @@ public class IndicatorLightHardware {
     public static final double COLOR_GREEN = 0.500;
     public static final double COLOR_RED = 0.277;
     public static final double COLOR_BLUE = 0.611;
+    public static final double COLOR_ORANGE = 0.333;
     public static final double COLOR_OFF = 0.0;
 
     // Blinking constants

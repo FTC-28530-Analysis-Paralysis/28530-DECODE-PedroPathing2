@@ -13,6 +13,7 @@ import com.qualcomm.hardware.gobilda.GoBildaPinpointDriver;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 
+import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 
 // Import our new custom constants class
@@ -59,26 +60,17 @@ public class Constants {
     }
 
     public static CustomDriveConstants customDriveConstants = new CustomDriveConstants();
-
-    // CORRECTED: Use our new, custom constants class
-    public static CustomPinpointConstants localizerConstants = new CustomPinpointConstants()
-            .forwardPodY(-3.25)
-            .strafePodX(-6.625)
-            .distanceUnit(DistanceUnit.INCH)
-            .hardwareMapName("pinpoint")
-            .encoderResolution(GoBildaPinpointDriver.GoBildaOdometryPods.goBILDA_4_BAR_POD)
-            .forwardEncoderDirection(GoBildaPinpointDriver.EncoderDirection.FORWARD)
-            .strafeEncoderDirection(GoBildaPinpointDriver.EncoderDirection.FORWARD);
-
+    
     /**
-     * Creates a Follower instance with the new CombinedLocalizer.
-     * @param hardwareMap The hardware map from the OpMode.
-     * @param localizer The fused localizer instance from the RobotHardwareContainer.
-     * @return A configured Follower instance.
+     * Creates a new Follower instance with a complete, fused localization system.
+     *
+     * @param hardwareMap The hardwareMap from the OpMode.
+     * @param localizer The localizer instance for the follower to use.
+     * @return A fully initialized Follower instance.
      */
     public static Follower createFollower(HardwareMap hardwareMap, Localizer localizer) {
         return new FollowerBuilder(followerConstants, hardwareMap)
-                .setLocalizer(localizer) // Use the fused localizer
+                .setLocalizer(localizer) // Use the provided localizer
                 .pathConstraints(pathConstraints)
                 .setDrivetrain(new CustomMecanumDrive(hardwareMap, customDriveConstants))
                 .build();

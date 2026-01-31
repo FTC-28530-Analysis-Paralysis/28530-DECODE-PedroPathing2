@@ -12,8 +12,8 @@ import java.util.OptionalDouble;
  */
 public class CustomPinpointConstants {
 
-    public double forwardPodY = 0;
-    public double strafePodX = 0;
+    public double forwardPodY = -3.25;
+    public double strafePodX = -6.625;
     public DistanceUnit distanceUnit = DistanceUnit.INCH;
     public String hardwareMapName = "pinpoint";
     public OptionalDouble yawScalar = OptionalDouble.empty();

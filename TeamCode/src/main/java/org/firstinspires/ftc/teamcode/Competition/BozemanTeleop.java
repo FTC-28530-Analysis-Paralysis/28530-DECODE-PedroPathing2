@@ -1,8 +1,8 @@
 package org.firstinspires.ftc.teamcode.Competition;
 
-import com.pedropathing.follower.Follower;
-import com.pedropathing.geometry.BezierLine;
+import com.pedropathing.follower.Follower;import com.pedropathing.geometry.BezierLine;
 import com.pedropathing.geometry.Pose;
+import com.pedropathing.localization.Localizer;
 import com.pedropathing.paths.Path;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
@@ -70,6 +70,7 @@ public class BozemanTeleop extends OpMode {
     // Core robot hardware and software components
     RobotHardwareContainer robot;
     ActionManager actionManager;
+    CombinedLocalizer localizer; // Use CombinedLocalizer directly
     Follower follower;
     DriverAssist driverAssist;
 
@@ -93,7 +94,8 @@ public class BozemanTeleop extends OpMode {
         // Initialize all hardware and software modules
         robot = new RobotHardwareContainer(hardwareMap, telemetry);
         actionManager = new ActionManager(robot);
-        follower = Constants.createFollower(hardwareMap, robot.localizer);
+        localizer = new CombinedLocalizer(hardwareMap, telemetry); // Create the localizer here
+        follower = Constants.createFollower(hardwareMap, localizer); // Pass it to the follower
         driverAssist = new DriverAssist(follower);
 
         // Default to Blue alliance if not set by an Autonomous OpMode
@@ -137,10 +139,6 @@ public class BozemanTeleop extends OpMode {
      * Handles all manual, driver-controlled actions.
      */
     private void handleManualControls() {
-        // If localization becomes unreliable, force a safe robot-centric drive mode.
-        if (!isLocalizationReliable()) {
-            driverAssist.setMode(DriverAssist.DriveMode.ROBOT_CENTRIC);
-        }
         // Pass joystick inputs to the DriverAssist module
         driverAssist.update(-gamepad1.left_stick_y, gamepad1.left_stick_x, gamepad1.right_stick_x);
 
@@ -189,8 +187,8 @@ public class BozemanTeleop extends OpMode {
             }
         }
 
-        // Cycle through drive modes, but only if localization is reliable.
-        if (gamepad1.dpadRightWasPressed() && isLocalizationReliable()) {
+        // Cycle through drive modes, with no restrictions.
+        if (gamepad1.dpadRightWasPressed()) {
             switch (driverAssist.getMode()) {
                 case ROBOT_CENTRIC:
                     driverAssist.setMode(DriverAssist.DriveMode.FIELD_CENTRIC);
@@ -227,10 +225,9 @@ public class BozemanTeleop extends OpMode {
             robot.indicatorLight.blink(blinkColor, 2); // Blink to confirm selection
         }
 
-        // Manually reset heading and drive mode with the 'Start' button.
+        // Manual Heading and Drive Mode Reset
         if (gamepad1.startWasPressed()) {
-            ((CombinedLocalizer) robot.localizer).resetHeading(); // Call the reset method in the localizer
-            driverAssist.setMode(DriverAssist.DriveMode.ROBOT_CENTRIC); // Revert to safe drive mode
+            localizer.resetHeading(); // Call resetHeading on the localizer instance
             robot.indicatorLight.blink(IndicatorLightHardware.COLOR_BLUE, 1.5); // Blink to confirm reset
         }
 
@@ -246,7 +243,7 @@ public class BozemanTeleop extends OpMode {
         }
 
         // Trigger the Auto-Park sequence with the 'B' button, but only if localization is reliable.
-        if (gamepad1.bWasPressed() && isLocalizationReliable()) {
+        if (gamepad1.bWasPressed() && localizer.isPoseReliable()) {
             Pose parkPose = (GameState.alliance == GameState.Alliance.BLUE) ? FieldPosePresets.BLUE_BASE : FieldPosePresets.RED_BASE;
             Pose currentPose = follower.getPose();
             Path parkingPath = new Path(new BezierLine(currentPose, parkPose));
@@ -277,8 +274,8 @@ public class BozemanTeleop extends OpMode {
      * Updates all the telemetry on the Driver Station screen.
      */
     private void updateTelemetry() {
-        if (!isLocalizationReliable()) {
-            telemetry.addLine("!! LOCALIZATION UNRELIABLE - SAFE MODE !!");
+        if (!localizer.isPoseReliable()) {
+            telemetry.addLine("!! LOCALIZATION UNRELIABLE - AUTO-PARK DISABLED !!");
         }
         telemetry.addData("TeleOp State", currentState.toString());
         telemetry.addData("Drive Mode", driverAssist.getMode().toString());
@@ -286,30 +283,8 @@ public class BozemanTeleop extends OpMode {
         telemetry.addData("Alliance", GameState.alliance.toString());
         telemetry.addData("Launcher Target RPM", "%.1f", robot.launcher.getTargetRPM());
         telemetry.addData("Launcher Actual RPM", "%.1f", robot.launcher.getLeftFlywheelRPM());
-        if (isLocalizationReliable()) {
-            telemetry.addData("Pose", "X: %.2f, Y: %.2f, H: %.2f", follower.getPose().getX(), follower.getPose().getY(), Math.toDegrees(follower.getPose().getHeading()));
-        }
-        telemetry.update();
-    }
-
-    /**
-     * Checks if the robot's localization is currently active and reliable.
-     * @return true if the pose is not null and is considered reliable by the localizer.
-     */
-    private boolean isLocalizationReliable() {
-        // Cast to CombinedLocalizer to access the specific isPoseReliable method.
-        return robot.localizer != null && ((CombinedLocalizer) robot.localizer).isPoseReliable();
-    }
-
-    /**
-     * Code to run ONCE after the driver hits STOP.
-     * Ensures all motors are stopped.
-     */
-    @Override
-    public void stop() {
-        actionManager.stopAll();
-        if(follower.isBusy()) {
-            follower.breakFollowing();
+        if (localizer.isPoseReliable()) {
+            telemetry.addData("Pose", "X: %.2f, Y: %.2f, H: %.1f", follower.getPose().getX(), follower.getPose().getY(), Math.toDegrees(follower.getPose().getHeading()));
         }
     }
 }

@@ -1,15 +1,11 @@
 package org.firstinspires.ftc.teamcode.RobotHardware;
 
-import com.pedropathing.localization.Localizer;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
-import org.firstinspires.ftc.teamcode.pedroPathing.CombinedLocalizer;
-import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
-import org.firstinspires.ftc.teamcode.pedroPathing.LimelightAprilTagLocalizer;
-import org.firstinspires.ftc.teamcode.pedroPathing.CustomPinpointLocalizer;
 
 /**
- * This class acts as a container to hold and initialize all the robot's hardware subsystems.
+ * This class acts as a container to hold and initialize all the robot's mechanical hardware subsystems.
+ * The localization system is now handled separately by the Follower in the Constants class.
  */
 public class RobotHardwareContainer {
 
@@ -18,14 +14,9 @@ public class RobotHardwareContainer {
     public final LauncherHardware launcher;
     public final FeederHardware transfer;
     public final IndicatorLightHardware indicatorLight;
-    public final LimelightAprilTagLocalizer aprilTag;
-    public final CustomPinpointLocalizer pinpoint;
 
-    // The ColorDiverter is nullable because it only exists on the competition bot
+    // The ColorDiverter is nullable because it may not exist on all robot configurations.
     public ColorDiverterHardware colorDiverter;
-
-    // The single, authoritative localizer for the robot
-    public final Localizer localizer;
 
     public RobotHardwareContainer(HardwareMap hardwareMap, Telemetry telemetry) {
         // Create instances of each hardware class
@@ -34,14 +25,6 @@ public class RobotHardwareContainer {
         transfer = new FeederHardware();
         indicatorLight = new IndicatorLightHardware();
         colorDiverter = new ColorDiverterHardware();
-        
-        // Create the two underlying localizers
-        aprilTag = new LimelightAprilTagLocalizer();
-        aprilTag.init(hardwareMap, telemetry);
-        pinpoint = new CustomPinpointLocalizer(hardwareMap, Constants.localizerConstants);
-
-        // Create the CombinedLocalizer, which fuses the two data sources
-        localizer = new CombinedLocalizer(pinpoint, aprilTag, telemetry);
 
         // Call the init() method for each mechanical subsystem
         indicatorLight.init(hardwareMap);

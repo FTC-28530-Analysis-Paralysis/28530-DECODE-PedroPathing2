@@ -12,6 +12,7 @@ import org.firstinspires.ftc.teamcode.RobotHardware.ActionManager;
 import org.firstinspires.ftc.teamcode.RobotHardware.FieldPosePresets;
 import org.firstinspires.ftc.teamcode.RobotHardware.GameState;
 import org.firstinspires.ftc.teamcode.RobotHardware.RobotHardwareContainer;
+import org.firstinspires.ftc.teamcode.pedroPathing.CombinedLocalizer;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 
 import java.util.ArrayList;
@@ -78,6 +79,7 @@ public class BozemanAuto extends OpMode {
     private boolean isPlaylistFinalized = false; // A flag to lock the playlist from accidental changes
 
     // ========== OPMODE CORE MEMBERS ========== //
+    private CombinedLocalizer localizer;        // The combined localizer for localization
     private Follower follower;                  // The Pedro Pathing follower for path execution
     private ElapsedTime timer = new ElapsedTime(); // A general-purpose timer
     private RobotHardwareContainer robot;       // Container for all robot hardware
@@ -106,7 +108,8 @@ public class BozemanAuto extends OpMode {
     public void init() {
         robot = new RobotHardwareContainer(hardwareMap, telemetry);
         actionManager = new ActionManager(robot);
-        follower = Constants.createFollower(hardwareMap, robot.localizer);
+        localizer = new CombinedLocalizer(hardwareMap, telemetry);
+        follower = Constants.createFollower(hardwareMap, localizer);
 
         telemetry.addLine("--- Playlist Autonomous Builder ---");
         telemetry.addLine("X: Lock Playlist | A: Add | B: Remove | Y: Clear");
