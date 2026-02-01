@@ -17,7 +17,8 @@ public class DriverAssist {
     public enum DriveMode {
         ROBOT_CENTRIC,
         FIELD_CENTRIC,
-        TARGET_LOCK
+        FC_TARGET_LOCK,
+        RC_TARGET_LOCK
     }
     private DriveMode currentMode = DriveMode.ROBOT_CENTRIC;
 
@@ -43,10 +44,16 @@ public class DriverAssist {
      */
     public void update(double joyY, double joyX, double joyTurn) {
         Pose robotPose = follower.getPose();
+        double headingError = 0;
+        double calculatedTurn = 0;
 
         // If localization is not stable, do not send drive commands.
         if (robotPose == null) {
-            return;
+            currentMode = DriveMode.ROBOT_CENTRIC;
+        } else {
+            headingError = MathFunctions.getSmallestAngleDifference(calculateHeadingToGoal(robotPose), robotPose.getHeading());
+            calculatedTurn = HEADING_KP * headingError;
+            calculatedTurn = Math.max(-1.0, Math.min(1.0, calculatedTurn));
         }
 
         switch (currentMode) {
@@ -58,12 +65,12 @@ public class DriverAssist {
                 follower.setTeleOpDrive(joyY, joyX, joyTurn, false);
                 break;
 
-            case TARGET_LOCK:
-                double headingError = MathFunctions.getSmallestAngleDifference(calculateHeadingToGoal(robotPose), robotPose.getHeading());
-                double calculatedTurn = HEADING_KP * headingError;
-                calculatedTurn = Math.max(-1.0, Math.min(1.0, calculatedTurn));
-
+            case FC_TARGET_LOCK:
                 follower.setTeleOpDrive(joyY, joyX, calculatedTurn, false);
+                break;
+
+            case RC_TARGET_LOCK:
+                follower.setTeleOpDrive(joyY, joyX, calculatedTurn, true);
                 break;
         }
     }

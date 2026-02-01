@@ -15,7 +15,6 @@ import org.firstinspires.ftc.teamcode.RobotHardware.FieldPosePresets;
 import org.firstinspires.ftc.teamcode.RobotHardware.GameState;
 import org.firstinspires.ftc.teamcode.RobotHardware.IndicatorLightHardware;
 import org.firstinspires.ftc.teamcode.RobotHardware.RobotHardwareContainer;
-import org.firstinspires.ftc.teamcode.pedroPathing.CombinedLocalizer;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 
 /**
@@ -86,6 +85,7 @@ public class BozemanTeleop extends OpMode {
     private ActionManager actionManager;
     private PinpointLocalizer localizer; // The single, authoritative localizer instance
     private Follower follower;
+    public static Pose startingPose;
     private DriverAssist driverAssist;
 
     // State machine enums for this OpMode
@@ -110,6 +110,8 @@ public class BozemanTeleop extends OpMode {
         actionManager = new ActionManager(robot);
         localizer = new PinpointLocalizer(hardwareMap, new PinpointConstants());
         follower = Constants.createFollower(hardwareMap, localizer); // Pass it to the follower
+        follower.setStartingPose(startingPose == null ? new Pose() : startingPose);
+        follower.update();
         driverAssist = new DriverAssist(follower);
 
         // If alliance wasn't set by a previous OpMode, default to Blue.
@@ -119,7 +121,7 @@ public class BozemanTeleop extends OpMode {
         }
 
         telemetry.addLine("Bozeman TeleOp Initialized.");
-        telemetry.addLine("IN INIT: Use D-Pad to select Alliance and Start Position.");
+        telemetry.addLine("IN INIT: Use D-Pad L/R to select Alliance and Up/Down for Start Position.");
         telemetry.update();
     }
 
@@ -247,22 +249,6 @@ public class BozemanTeleop extends OpMode {
                 robot.launcher.start();
             }
         }
-
-        // Cycle through drive modes. No reliability check is needed here, giving the
-        // driver full control to use any mode they see fit.
-        if (gamepad1.dpadRightWasPressed()) {
-            switch (driverAssist.getMode()) {
-                case ROBOT_CENTRIC:
-                    driverAssist.setMode(DriverAssist.DriveMode.FIELD_CENTRIC);
-                    break;
-                case FIELD_CENTRIC:
-                    driverAssist.setMode(DriverAssist.DriveMode.TARGET_LOCK);
-                    break;
-                case TARGET_LOCK:
-                    driverAssist.setMode(DriverAssist.DriveMode.ROBOT_CENTRIC);
-                    break;
-            }
-        }
     }
 
     /**
@@ -280,6 +266,19 @@ public class BozemanTeleop extends OpMode {
      * Manages system-level controls like alliance switching, parking, and resets.
      */
     private void handleSystemControls() {
+        // Cycle through drive modes. No reliability check is needed here, giving the
+        // driver full control to use any mode they see fit.
+        if (gamepad1.dpadRightWasPressed()) {
+            switch (driverAssist.getMode()) {
+                case ROBOT_CENTRIC:
+                    driverAssist.setMode(DriverAssist.DriveMode.FC_TARGET_LOCK);
+                    break;
+                case FC_TARGET_LOCK:
+                    driverAssist.setMode(DriverAssist.DriveMode.ROBOT_CENTRIC);
+                    break;
+            }
+        }
+
         // Switch alliance color with the 'Back' button.
         if (gamepad1.backWasPressed()) {
             GameState.alliance = (GameState.alliance == GameState.Alliance.BLUE) ? GameState.Alliance.RED : GameState.Alliance.BLUE;
