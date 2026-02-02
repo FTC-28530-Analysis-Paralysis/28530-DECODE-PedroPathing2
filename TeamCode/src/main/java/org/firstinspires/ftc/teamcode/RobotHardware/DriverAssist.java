@@ -24,7 +24,9 @@ public class DriverAssist {
 
     // Proportional gain for the Target Lock mode.
     // Tune this for responsive but stable target locking.
-    private static final double HEADING_KP = 0.8;
+    private static final double HEADING_KP = 0.4;
+
+    private static final double TURNING_MULTIPLIER = 0.5; // limit turning power for more control
 
     public DriverAssist(Follower follower) {
         this.follower = follower;
@@ -46,6 +48,9 @@ public class DriverAssist {
         Pose robotPose = follower.getPose();
         double headingError = 0;
         double calculatedTurn = 0;
+        joyTurn = squareInputWithSign(joyTurn) * TURNING_MULTIPLIER; // Limit turning power for more control
+        joyY = squareInputWithSign(joyY);
+        joyX = squareInputWithSign(joyX);
 
         // If localization is not stable, do not send drive commands.
         if (robotPose == null) {
@@ -88,5 +93,9 @@ public class DriverAssist {
                 targetGoal.getY() - robotPose.getY(),
                 targetGoal.getX() - robotPose.getX()
         );
+    }
+
+    public double squareInputWithSign(double input) {
+        return Math.copySign(input * input, input);
     }
 }
