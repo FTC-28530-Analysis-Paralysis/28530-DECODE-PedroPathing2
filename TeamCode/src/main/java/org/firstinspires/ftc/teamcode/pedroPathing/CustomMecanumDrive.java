@@ -46,7 +46,7 @@ public class CustomMecanumDrive extends Drivetrain {
         }
 
         updateConstants(); // Set motor directions
-        setMotorsToFloat();
+        setMotorsToBrake();
         breakFollowing();
 
         // This section defines the physical reality of the drive wheels for the library's math.

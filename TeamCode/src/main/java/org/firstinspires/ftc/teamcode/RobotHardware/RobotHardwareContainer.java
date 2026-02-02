@@ -12,7 +12,7 @@ public class RobotHardwareContainer {
     // Publicly accessible hardware subsystem objects
     public final IntakeHardware intake;
     public final LauncherHardware launcher;
-    public final FeederHardware transfer;
+    public final FeederHardware feeder;
     public final IndicatorLightHardware indicatorLight;
 
     // The ColorDiverter is nullable because it may not exist on all robot configurations.
@@ -22,7 +22,7 @@ public class RobotHardwareContainer {
         // Create instances of each hardware class
         intake = new IntakeHardware();
         launcher = new LauncherHardware();
-        transfer = new FeederHardware();
+        feeder = new FeederHardware();
         indicatorLight = new IndicatorLightHardware();
         colorDiverter = new ColorDiverterHardware();
 
@@ -30,7 +30,7 @@ public class RobotHardwareContainer {
         indicatorLight.init(hardwareMap);
         intake.init(hardwareMap);
         launcher.init(hardwareMap, indicatorLight);
-        transfer.init(hardwareMap);
+        feeder.init(hardwareMap);
         colorDiverter.init(hardwareMap);
     }
 }

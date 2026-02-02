@@ -54,7 +54,7 @@ public class Constants {
 
         public double maxPower = 1.0;
         public double motorCachingThreshold = 0.01;
-        public boolean useBrakeModeInTeleOp = false;
+        public boolean useBrakeModeInTeleOp = true;
         public boolean useVoltageCompensation = false;
         public double nominalVoltage = 12.0;
         public double staticFrictionCoefficient = 0.1;

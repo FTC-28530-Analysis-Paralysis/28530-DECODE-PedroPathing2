@@ -102,14 +102,14 @@
 //
 //    private void handleManualMechanisms() {
 //        if (gamepad1.right_trigger > 0.1) {
-//            actionManager.startIntake();
+//            actionManager.toggleIntake();
 //        } else if (gamepad1.left_trigger > 0.1) {
 //            actionManager.reverseAll();
 //        } else if (gamepad1.dpadRightWasPressed()) {
 //            actionManager.startLaunch();
 //        } else if (gamepad1.yWasPressed()) {
-//            // Manual override for transfer
-//            robot.transfer.run();
+//            // Manual override for feeder
+//            robot.feeder.runLeft();
 //        } else if (gamepad1.dpadUpWasPressed()){
 //            robot.launcher.launchClose = !robot.launcher.launchClose;
 //        } else if (!actionManager.isBusy()) {

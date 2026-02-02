@@ -14,7 +14,6 @@ import org.firstinspires.ftc.teamcode.RobotHardware.ActionManager;
 import org.firstinspires.ftc.teamcode.RobotHardware.FieldPosePresets;
 import org.firstinspires.ftc.teamcode.RobotHardware.GameState;
 import org.firstinspires.ftc.teamcode.RobotHardware.RobotHardwareContainer;
-import org.firstinspires.ftc.teamcode.pedroPathing.CombinedLocalizer;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 
 import java.util.ArrayList;
@@ -75,7 +74,7 @@ public class BozemanAuto extends OpMode {
     private SpikeLocation currentSpikeContext = SpikeLocation.NONE;
 
     // --- Playlist variables ---
-    private ArrayList<AutoCommand> autoCommands = new ArrayList<>(); // The list of commands to run
+    private ArrayList<AutoCommand> autoCommands = new ArrayList<>(); // The list of commands to runLeft
     private int commandMenuIndex = 0;           // The currently selected command in the D-Pad menu
     private int currentCommandIndex = 0;        // The index of the command currently being executed
     private boolean isPlaylistFinalized = false; // A flag to lock the playlist from accidental changes
@@ -97,13 +96,14 @@ public class BozemanAuto extends OpMode {
     private int intakeCycleArtifactCount = 0; // How many Artifacts we've collected in the current intake cycle
     private int scoreCycleArtifactCount = 0;  // How many Artifacts we've launched in the current scoring cycle
     private List<Character> intakeColorOrder = new ArrayList<>(); // The expected order of Artifact colors
+    private List<Character> scoreOrder = new ArrayList<>(); // The order to launch artifacts (L/R)
     private final List<Character> SPIKE_FRONT_COLORS = Arrays.asList('G', 'P', 'P');
     private final List<Character> SPIKE_MIDDLE_COLORS = Arrays.asList('P', 'G', 'P');
     private final List<Character> SPIKE_BACK_COLORS = Arrays.asList('P', 'P', 'G');
     private final double INTAKE_OFFSET_DISTANCE = 6.0; // Distance to move between Artifacts in a stack
 
     /**
-     * Code to run ONCE when the driver hits INIT.
+     * Code to runLeft ONCE when the driver hits INIT.
      * Initializes hardware and displays instructions on the Driver Station.
      */
     @Override
@@ -119,7 +119,7 @@ public class BozemanAuto extends OpMode {
     }
 
     /**
-     * Code to run REPEATEDLY during the init phase.
+     * Code to runLeft REPEATEDLY during the init phase.
      * This is where the drive team builds their autonomous playlist.
      */
     @Override
@@ -167,7 +167,7 @@ public class BozemanAuto extends OpMode {
     }
 
     /**
-     * Code to run ONCE when the driver hits PLAY.
+     * Code to runLeft ONCE when the driver hits PLAY.
      * It calculates all necessary poses and starts the state machine.
      */
     @Override
@@ -176,7 +176,7 @@ public class BozemanAuto extends OpMode {
         GameState.alliance = this.alliance;
 
         // Spin up the intake and launcher at the start of autonomous
-        actionManager.startIntake();
+        robot.intake.run();
         robot.launcher.start();
 
         calculatePoses(); // Determine all field coordinates based on alliance/start pos
@@ -191,7 +191,7 @@ public class BozemanAuto extends OpMode {
     }
 
     /**
-     * Code to run REPEATEDLY during the autonomous period.
+     * Code to runLeft REPEATEDLY during the autonomous period.
      * This is the main loop that drives the state machine.
      */
     @Override
@@ -200,19 +200,20 @@ public class BozemanAuto extends OpMode {
         actionManager.update();
         robot.launcher.update(follower.getPose()); // This is crucial for dynamic speed in Auto
         updatePath(); // The heart of the autonomous logic
+        follower.update();
 
         telemetry.addData("Executing Step", (currentCommandIndex + 1) + " of " + autoCommands.size());
         telemetry.addData("Command", (currentCommandIndex < autoCommands.size()) ? autoCommands.get(currentCommandIndex) : "DONE");
         telemetry.addData("Path State", pathState);
-        telemetry.addData("Pose", "%.2f, %.2f, %.1f", follower.getPose());
+        //telemetry.addData("Pose", "%.2f, %.2f, %.1f", follower.getPose());
 
-        //telemetry.addData("Pose", "X: %.2f, Y: %.2f, H: %.1f", follower.getPose().getX(), follower.getPose().getY(), Math.toDegrees(follower.getPose().getHeading()));
+        telemetry.addData("Pose", "X: %.2f, Y: %.2f, H: %.1f", follower.getPose().getX(), follower.getPose().getY(), Math.toDegrees(follower.getPose().getHeading()));
 
         telemetry.update();
     }
 
     /**
-     * Code to run ONCE after the OpMode ends.
+     * Code to runLeft ONCE after the OpMode ends.
      * Saves the robot's final pose to GameState for a seamless transition to TeleOp.
      */
     @Override
@@ -299,7 +300,7 @@ public class BozemanAuto extends OpMode {
                 }
                 break;
             case 302: // Start the intake motor.
-                actionManager.startIntake();
+                robot.intake.run();
                 setPathState(303);
                 break;
             case 303: // Wait for the intake action to complete.
@@ -325,8 +326,13 @@ public class BozemanAuto extends OpMode {
                 break;
             case 401: // This is a loop that fires all three artifacts.
                 if (!actionManager.isBusy()) { // Wait for the previous shot to complete.
-                    if (scoreCycleArtifactCount < 3) {
-                        actionManager.startLaunch(); // This ActionManager method fires one artifact.
+                    if (scoreCycleArtifactCount < scoreOrder.size()) {
+                        char launchSide = scoreOrder.get(scoreCycleArtifactCount);
+                        if (launchSide == 'L') {
+                            actionManager.startLeftLaunch();
+                        } else { // Default to right for any other character
+                            actionManager.startRightLaunch();
+                        }
                         scoreCycleArtifactCount++;
                     } else {
                         advanceToNextCommand(); // All three have been fired, move on.
@@ -365,10 +371,12 @@ public class BozemanAuto extends OpMode {
                 setPathState(300);
                 break;
             case SCORE_ALL_THREE_CLOSE:
+                scoreOrder = Arrays.asList('L', 'L', 'R'); // Set launch order: 2 Left, 1 Right
                 follower.followPath(new Path(new BezierLine(follower.getPose(), scoreClosePose)));
                 setPathState(400); // Enter the scoring cycle state machine
                 break;
             case SCORE_ALL_THREE_FAR:
+                scoreOrder = Arrays.asList('L', 'L', 'R'); // Set launch order: 2 Left, 1 Right
                 follower.followPath(new Path(new BezierLine(follower.getPose(), scoreFarPose)));
                 setPathState(400); // Enter the scoring cycle state machine
                 break;

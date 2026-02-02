@@ -51,7 +51,7 @@
 //    RobotHardwareContainer robot;
 //    Follower follower;
 //
-//    final double FEED_TIME_SECONDS = 0.80; //The feeder servos run this long when a shot is requested.
+//    final double FEED_TIME_SECONDS = 0.80; //The feeder servos runLeft this long when a shot is requested.
 //    final double STOP_SPEED = 0.0; //We send this power to the servos when we want them to stop.
 //    final double FULL_SPEED = 1.0;
 //
@@ -112,7 +112,7 @@
 //    double rightBackPower;
 //
 //    /*
-//     * Code to run ONCE when the driver hits INIT
+//     * Code to runLeft ONCE when the driver hits INIT
 //     */
 //    @Override
 //    public void init() {
@@ -161,21 +161,21 @@
 //    }
 //
 //    /*
-//     * Code to run REPEATEDLY after the driver hits INIT, but before they hit START
+//     * Code to runLeft REPEATEDLY after the driver hits INIT, but before they hit START
 //     */
 //    @Override
 //    public void init_loop() {
 //    }
 //
 //    /*
-//     * Code to run ONCE when the driver hits START
+//     * Code to runLeft ONCE when the driver hits START
 //     */
 //    @Override
 //    public void start() {
 //    }
 //
 //    /*
-//     * Code to run REPEATEDLY after the driver hits START but before they hit STOP
+//     * Code to runLeft REPEATEDLY after the driver hits START but before they hit STOP
 //     */
 //    @Override
 //    public void loop() {
@@ -247,7 +247,7 @@
 //    }
 //
 //    /*
-//     * Code to run ONCE after the driver hits STOP
+//     * Code to runLeft ONCE after the driver hits STOP
 //     */
 //    @Override
 //    public void stop() {

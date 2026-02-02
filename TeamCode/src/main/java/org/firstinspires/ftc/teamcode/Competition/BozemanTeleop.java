@@ -26,7 +26,7 @@ import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
  * -- V1.1 CHANGELOG --
  * - Implemented robust initialization with `init_loop` to allow pre-match selection
  *   of Alliance and Starting Position. This ensures a valid field pose even if
- *   Autonomous is not run.
+ *   Autonomous is not runLeft.
  * - Refactored `start()` method to intelligently set the starting pose by first
  *   checking `GameState` and then falling back to selected presets.
  * - Centralized the `CombinedLocalizer` instance within TeleOp, allowing direct access
@@ -48,7 +48,7 @@ import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
  * [ ] LAUNCHER SPEED: Tune the launcher's automatic speed control in `LauncherHardware`
  *     based on distance to the goal.
  * [ ] ACTION TIMING: Tune all `timer.seconds()` durations in `ActionManager` for intake,
- *     transfer, and launch sequences to ensure they are fast and reliable.
+ *     feeder, and launch sequences to ensure they are fast and reliable.
  *
  * GAME & FIELD SPECIFIC:
  * [ ] FIELD POSES: Verify all `FieldPosePresets` (e.g., `BLUE_FRONT_START`, `RED_BASE`)
@@ -100,7 +100,7 @@ public class BozemanTeleop extends OpMode {
     private boolean left_trigger_pressed = false;
 
     /**
-     * Code to run ONCE when the driver hits INIT.
+     * Code to runLeft ONCE when the driver hits INIT.
      * Initializes hardware and sets up a default alliance.
      */
     @Override
@@ -126,7 +126,7 @@ public class BozemanTeleop extends OpMode {
     }
 
     /**
-     * Code to run REPEATEDLY during the init phase, before START is pressed.
+     * Code to runLeft REPEATEDLY during the init phase, before START is pressed.
      * This allows the driver to select the alliance and starting position.
      */
     @Override
@@ -151,7 +151,7 @@ public class BozemanTeleop extends OpMode {
     }
 
     /**
-     * Code to run ONCE when the driver hits PLAY.
+     * Code to runLeft ONCE when the driver hits PLAY.
      * Sets the definitive starting pose for the robot.
      */
     @Override
@@ -216,24 +216,20 @@ public class BozemanTeleop extends OpMode {
      * Manages intake motor controls (On/Off and Reverse).
      */
     private void handleIntakeControls() {
-        // Eject/Reverse on Left Trigger. Uses manual edge detection as it's an analog input.
-        boolean leftTriggerIsPressed = gamepad1.left_trigger > 0.1;
-        if (leftTriggerIsPressed && !left_trigger_pressed) {
-            actionManager.reverseAll();
-        }
-        // Stop reversing when the trigger is released.
-        if (!leftTriggerIsPressed && left_trigger_pressed) {
-            actionManager.stopAll();
-        }
-        left_trigger_pressed = leftTriggerIsPressed;
+//        // Eject/Reverse on Left Trigger. Uses manual edge detection as it's an analog input.
+//        boolean leftTriggerIsPressed = gamepad1.left_trigger > 0.1;
+//        if (leftTriggerIsPressed && !left_trigger_pressed) {
+//            actionManager.reverseAll();
+//        }
+//        // Stop reversing when the trigger is released.
+//        if (!leftTriggerIsPressed && left_trigger_pressed) {
+//            actionManager.stopAll();
+//        }
+//        left_trigger_pressed = leftTriggerIsPressed;
 
         // Toggle Intake on/off with the 'A' button, but not if ejecting.
-        if (gamepad1.aWasPressed() && !leftTriggerIsPressed) {
-            if (actionManager.getCurrentState() == ActionManager.ActionState.INTAKING) {
-                actionManager.stopAll();
-            } else if (actionManager.getCurrentState() == ActionManager.ActionState.IDLE) {
-                actionManager.startIntake();
-            }
+        if (gamepad1.aWasPressed()) {
+            robot.intake.toggleIntake();
         }
     }
 
@@ -252,13 +248,19 @@ public class BozemanTeleop extends OpMode {
     }
 
     /**
-     * Manages the control to fire an Artifact from the feeder.
+     * Manages the control to fire an Artifact from the feeders.
      */
     private void handleFeederControls() {
-        // Fire an artifact when either bumper is pressed. The ActionManager handles the
+        // Fire an artifact from left track when left bumper is pressed. The ActionManager handles the
         // logic of waiting for the launcher to be at the correct speed.
-        if (gamepad1.left_bumper || gamepad1.right_bumper) {
-            actionManager.fireArtifactWhenReady();
+        if (gamepad1.left_bumper) {
+            actionManager.fireLeftArtifactWhenReady();
+        }
+
+        // Fire an artifact from right track when right bumper is pressed. The ActionManager handles the
+        // logic of waiting for the launcher to be at the correct speed.
+        if (gamepad1.right_bumper) {
+            actionManager.fireLeftArtifactWhenReady();
         }
     }
 

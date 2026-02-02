@@ -19,21 +19,24 @@ public class FeederHardware {
 
     // --- Public Methods ---
 
-    /** Runs the transfer to move artifacts towards the launcher. */
-    public void run() {
+    /** Runs the left feeder feeder to move artifacts towards the launcher. */
+    public void runLeft() {
         leftfeeder.setPower(FEEDER_POWER);
-        rightfeeder.setPower(FEEDER_POWER);
-
     }
 
-    /** Reverses the transfer. */
+    /** Runs the right feeder feeder to move artifacts towards the launcher. */
+    public void runRight() {
+        rightfeeder.setPower(FEEDER_POWER);
+    }
+
+    /** Reverses the feeder. */
     public void reverse() {
         leftfeeder.setPower(-FEEDER_POWER);
         rightfeeder.setPower(-FEEDER_POWER);
 
     }
 
-    /** Stops the transfer. */
+    /** Stops the feeder. */
     public void stop() {
         leftfeeder.setPower(0.0);
         rightfeeder.setPower(0.0);

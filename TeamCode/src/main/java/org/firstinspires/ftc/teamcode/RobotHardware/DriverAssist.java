@@ -58,7 +58,7 @@ public class DriverAssist {
 
         switch (currentMode) {
             case ROBOT_CENTRIC:
-                follower.setTeleOpDrive(joyY, joyX, joyTurn, true);
+                follower.setTeleOpDrive(joyY, -joyX, -joyTurn, true);
                 break;
 
             case FIELD_CENTRIC:
@@ -70,7 +70,7 @@ public class DriverAssist {
                 break;
 
             case RC_TARGET_LOCK:
-                follower.setTeleOpDrive(joyY, joyX, calculatedTurn, true);
+                follower.setTeleOpDrive(joyY, -joyX, calculatedTurn, true);
                 break;
         }
     }

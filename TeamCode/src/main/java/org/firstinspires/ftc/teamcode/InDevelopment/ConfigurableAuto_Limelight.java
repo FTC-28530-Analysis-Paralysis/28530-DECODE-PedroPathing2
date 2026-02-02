@@ -206,7 +206,7 @@
 //                }
 //                break;
 //            case 302: // Start intake
-//                actionManager.startIntake();
+//                actionManager.toggleIntake();
 //                setPathState(303);
 //                break;
 //            case 303: // Wait for intake to finish

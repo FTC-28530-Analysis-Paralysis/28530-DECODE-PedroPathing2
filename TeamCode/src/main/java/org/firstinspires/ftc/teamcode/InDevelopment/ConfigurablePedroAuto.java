@@ -270,7 +270,7 @@
 //            case 0: // IDLE
 //                break;
 //            case 1: // Start pickup sequence
-//                robot.intake.run();
+//                robot.intake.runLeft();
 //                actionTimer.reset();
 //                setActionState(10);
 //                break;
@@ -287,7 +287,7 @@
 //                break;
 //            case 20: // Wait for shooter to get to speed
 //                if (actionTimer.seconds() > 1.0) {
-//                    robot.transfer.run();
+//                    robot.feeder.runLeft();
 //                    actionTimer.reset();
 //                    setActionState(21);
 //                }
@@ -295,7 +295,7 @@
 //            case 21: // Wait for artifact to be shot
 //                if (actionTimer.seconds() > 3) {
 //                    robot.launcher.stop();
-//                    robot.transfer.stop();
+//                    robot.feeder.stop();
 //                    setActionState(0);
 //                }
 //                break;
