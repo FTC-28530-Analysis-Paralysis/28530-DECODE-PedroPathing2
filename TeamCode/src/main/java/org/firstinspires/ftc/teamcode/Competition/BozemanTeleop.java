@@ -61,14 +61,12 @@ import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
  * Left Stick:  Translate (forward/backward/strafe)
  * Right Stick: Rotate
  *
- * [Intake & Feeder]
+ * CONTROLS (Gamepad 1 - Driver):
+ * Left Stick:  Strafe (X) and Forward/Reverse (Y)
+ * Right Stick: Turn (X)
+ * Bumpers:     Fire Left/Right Artifact
  * A Button:      Toggle Intake On/Off
- * Left Bumper:   Fire one Artifact (if launcher is at speed)
- * Right Bumper:  Fire one Artifact (if launcher is at speed)
- * Left Trigger:  Eject/Reverse all intake and feeder motors
- *
- * [Launcher]
- * Y Button:      Toggle launcher motors On/Off (speed is automatic)
+ * Y Button:      Toggle Launcher motors On/Off (speed is automatic)
  *
  * [System & Drive Modes]
  * D-Pad Right:   Cycle through drive modes (Robot-Centric -> Field-Centric -> Target-Lock)
@@ -169,7 +167,6 @@ public class BozemanTeleop extends OpMode {
         }
 
         // The first update call populates the follower with the correct starting pose
-
         follower.update();
         follower.startTeleOpDrive();
     }
@@ -260,7 +257,7 @@ public class BozemanTeleop extends OpMode {
         // Fire an artifact from right track when right bumper is pressed. The ActionManager handles the
         // logic of waiting for the launcher to be at the correct speed.
         if (gamepad1.right_bumper) {
-            actionManager.fireLeftArtifactWhenReady();
+            actionManager.fireRightArtifactWhenReady();
         }
     }
 
@@ -323,13 +320,19 @@ public class BozemanTeleop extends OpMode {
      */
     private void handleAutoPark() {
         telemetry.addLine("--- AUTO-PARKING ---");
-        // When the follower is no longer busy, return to manual control.
-        if (!follower.isBusy()) {
-            currentState = TeleOpState.MANUAL;
-        }
+
         // Allow the driver to interrupt the path by moving the sticks.
+        // This check is first to ensure it's responsive.
         if (Math.abs(gamepad1.left_stick_y) > 0.1 || Math.abs(gamepad1.left_stick_x) > 0.1 || Math.abs(gamepad1.right_stick_x) > 0.1) {
             follower.breakFollowing();
+            follower.startTeleOpDrive(); // IMPORTANT: Re-engage teleop mode
+            currentState = TeleOpState.MANUAL;
+            return; // Exit immediately
+        }
+
+        // When the follower is no longer busy, it means the path finished naturally.
+        if (!follower.isBusy()) {
+            follower.startTeleOpDrive(); // Re-engage teleop mode
             currentState = TeleOpState.MANUAL;
         }
     }

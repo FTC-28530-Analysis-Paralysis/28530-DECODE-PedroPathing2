@@ -6,10 +6,12 @@ import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.PIDFCoefficients;
 import com.pedropathing.geometry.Pose;
 
+import org.firstinspires.ftc.robotcore.external.navigation.CurrentUnit;
+
 public class LauncherHardware {
 
-    private DcMotorEx leftlauncher = null;
-    private DcMotorEx rightlauncher = null;
+    private DcMotorEx leftLauncher = null;
+    private DcMotorEx rightLauncher = null;
     private IndicatorLightHardware indicatorLight = null;
 
     public static final PIDFCoefficients LAUNCHER_PIDF = new PIDFCoefficients(300, 0, 0, 10);
@@ -33,20 +35,20 @@ public class LauncherHardware {
 
     public void init(HardwareMap hardwareMap, IndicatorLightHardware indicatorLight) {
         this.indicatorLight = indicatorLight;
-        leftlauncher = hardwareMap.get(DcMotorEx.class, "left_launcher");
-        rightlauncher = hardwareMap.get(DcMotorEx.class, "right_launcher");
+        leftLauncher = hardwareMap.get(DcMotorEx.class, "left_launcher");
+        rightLauncher = hardwareMap.get(DcMotorEx.class, "right_launcher");
 
-        leftlauncher.setDirection(DcMotor.Direction.REVERSE);
-        rightlauncher.setDirection(DcMotor.Direction.FORWARD);
+        leftLauncher.setDirection(DcMotor.Direction.REVERSE);
+        rightLauncher.setDirection(DcMotor.Direction.FORWARD);
 
-        leftlauncher.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        rightlauncher.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        leftLauncher.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        rightLauncher.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
 
-        leftlauncher.setPIDFCoefficients(DcMotor.RunMode.RUN_USING_ENCODER, LAUNCHER_PIDF);
-        rightlauncher.setPIDFCoefficients(DcMotor.RunMode.RUN_USING_ENCODER, LAUNCHER_PIDF);
+        leftLauncher.setPIDFCoefficients(DcMotor.RunMode.RUN_USING_ENCODER, LAUNCHER_PIDF);
+        rightLauncher.setPIDFCoefficients(DcMotor.RunMode.RUN_USING_ENCODER, LAUNCHER_PIDF);
 
-        leftlauncher.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        rightlauncher.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        leftLauncher.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        rightLauncher.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
         stop();
     }
@@ -105,16 +107,16 @@ public class LauncherHardware {
         return Math.max(0, calculatedSpeed); // Prevent negative speeds
     }
 
-    private void setLaunchSpeed(double targetRPM) {
+    public void setLaunchSpeed(double targetRPM) {
         this.targetRPM = targetRPM;
         double targetVelocity_TPS = (targetRPM * TICKS_PER_REV) / 60.0;
-        rightlauncher.setVelocity(targetVelocity_TPS);
-        leftlauncher.setVelocity(targetVelocity_TPS);
+        rightLauncher.setVelocity(targetVelocity_TPS);
+        leftLauncher.setVelocity(targetVelocity_TPS);
     }
 
     public void reverse() {
-        rightlauncher.setVelocity(-1000);
-        leftlauncher.setVelocity(-1000);
+        rightLauncher.setVelocity(-1000);
+        leftLauncher.setVelocity(-1000);
         if (indicatorLight != null) {
             indicatorLight.setOff();
         }
@@ -127,14 +129,16 @@ public class LauncherHardware {
     }
 
     public double getLeftFlywheelRPM() {
-        return (leftlauncher.getVelocity() * 60.0 / TICKS_PER_REV);
+        return (leftLauncher.getVelocity() * 60.0 / TICKS_PER_REV);
     }
 
     public double getRightFlywheelRPM(){
-        return (rightlauncher.getVelocity() * 60.0 / TICKS_PER_REV);
+        return (rightLauncher.getVelocity() * 60.0 / TICKS_PER_REV);
     }
 
     public double getTargetRPM(){
         return targetRPM;
     }
+    public double getLeftFlywheelCurrent() { return leftLauncher.getCurrent(CurrentUnit.AMPS); }
+    public double getRightFlywheelCurrent() { return rightLauncher.getCurrent(CurrentUnit.AMPS); }
 }
