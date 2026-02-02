@@ -76,12 +76,12 @@ public class LauncherTuningOpMode extends OpMode {
         }
 
         // --- Transfer/Feeder--
-        if (gamepad1.leftBumperWasPressed()) {
+        if (gamepad1.left_bumper) {
             feeder.runLeft();
         } else {
             feeder.stop();
         }
-        if (gamepad1.rightBumperWasPressed()) {
+        if (gamepad1.right_bumper) {
             feeder.runRight();
         } else {
             feeder.stop();
