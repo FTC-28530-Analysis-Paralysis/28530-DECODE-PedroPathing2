@@ -13,6 +13,7 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 import org.firstinspires.ftc.teamcode.RobotHardware.ActionManager;
 import org.firstinspires.ftc.teamcode.RobotHardware.FieldPosePresets;
 import org.firstinspires.ftc.teamcode.RobotHardware.GameState;
+import org.firstinspires.ftc.teamcode.RobotHardware.IndicatorLightHardware;
 import org.firstinspires.ftc.teamcode.RobotHardware.RobotHardwareContainer;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 
@@ -77,6 +78,7 @@ public class BozemanAuto extends OpMode {
     private ArrayList<AutoCommand> autoCommands = new ArrayList<>(); // The list of commands to runLeft
     private int commandMenuIndex = 0;           // The currently selected command in the D-Pad menu
     private int currentCommandIndex = 0;        // The index of the command currently being executed
+    private boolean isStartPoseSelected = false; // A flag to finish alliance and starting location selection before moving onto playlist building
     private boolean isPlaylistFinalized = false; // A flag to lock the playlist from accidental changes
 
     // ========== OPMODE CORE MEMBERS ========== //
@@ -124,46 +126,9 @@ public class BozemanAuto extends OpMode {
      */
     @Override
     public void init_loop() {
-        // Allow the user to lock the playlist to prevent accidental changes
-        if (gamepad1.xWasPressed()) {
-            isPlaylistFinalized = !isPlaylistFinalized;
-        }
-
-        // Only allow modifications if the playlist is not finalized
-        if (!isPlaylistFinalized) {
-            // --- Configure Alliance and Start Position ---
-            if (gamepad1.dpadUpWasPressed()) alliance = GameState.Alliance.BLUE;
-            if (gamepad1.dpadDownWasPressed()) alliance = GameState.Alliance.RED;
-
-            if (gamepad1.leftBumperWasPressed()) startPosition = StartPosition.FRONT;
-            if (gamepad1.rightBumperWasPressed()) startPosition = StartPosition.BACK;
-
-            // --- Build the Playlist ---
-            AutoCommand[] allCommands = AutoCommand.values();
-            // Scroll through commands with D-Pad
-            if (gamepad1.dpadRightWasPressed()) commandMenuIndex = (commandMenuIndex + 1) % allCommands.length;
-            if (gamepad1.dpadLeftWasPressed()) commandMenuIndex = (commandMenuIndex - 1 + allCommands.length) % allCommands.length;
-
-            // Add, remove, or clear commands
-            if (gamepad1.aWasPressed()) autoCommands.add(allCommands[commandMenuIndex]);
-            if (gamepad1.yWasPressed()) autoCommands.clear();
-            if (gamepad1.bWasPressed() && !autoCommands.isEmpty()) {
-                autoCommands.remove(autoCommands.size() - 1);
-            }
-        }
-
-        // --- Display Selections on Driver Station ---
-        if (isPlaylistFinalized) {
-            telemetry.addLine("*** PLAYLIST FINALIZED (Press X to Unlock) ***");
-        } else {
-            telemetry.addData("--> Selected Command", AutoCommand.values()[commandMenuIndex]);
-        }
-        telemetry.addData("Alliance", alliance).addData("Start", startPosition);
-        telemetry.addLine("\nCurrent Playlist:");
-        for (int i = 0; i < autoCommands.size(); i++) {
-            telemetry.addLine((i+1) + ". " + autoCommands.get(i));
-        }
-        telemetry.update();
+        if (!isStartPoseSelected) {
+            selectStartingLocation();
+        } else playlistBuilder();
     }
 
     /**
@@ -205,8 +170,6 @@ public class BozemanAuto extends OpMode {
         telemetry.addData("Executing Step", (currentCommandIndex + 1) + " of " + autoCommands.size());
         telemetry.addData("Command", (currentCommandIndex < autoCommands.size()) ? autoCommands.get(currentCommandIndex) : "DONE");
         telemetry.addData("Path State", pathState);
-        //telemetry.addData("Pose", "%.2f, %.2f, %.1f", follower.getPose());
-
         telemetry.addData("Pose", "X: %.2f, Y: %.2f, H: %.1f", follower.getPose().getX(), follower.getPose().getY(), Math.toDegrees(follower.getPose().getHeading()));
 
         telemetry.update();
@@ -281,11 +244,8 @@ public class BozemanAuto extends OpMode {
                 break;
 
             // --- Gate Hitting Sub-States ---
-            case 200: if (!follower.isBusy()) {
-                followerPathBuilder(gateApproachPose);
-                setPathState(201);
-            } break;
-            case 201: if (!follower.isBusy()) { followerPathBuilder(gateTriggerPose); setPathState(202); } break;
+            case 200: if (!follower.isBusy()) { followerPathBuilder(gateTriggerPose); setPathState(201); } break;
+            case 201: if (!follower.isBusy()) { followerPathBuilder(gateApproachPose); setPathState(202); } break;
             case 202: if (!follower.isBusy()) advanceToNextCommand(); break;
 
             // --- Intake Cycle Sub-States (now triggered by a SPIKE_*_AND_INTAKE command) ---
@@ -314,7 +274,7 @@ public class BozemanAuto extends OpMode {
                     } else { // Otherwise, move to the next artifact in the stack.
                         double offset = (alliance == GameState.Alliance.BLUE) ? -INTAKE_OFFSET_DISTANCE : INTAKE_OFFSET_DISTANCE;
                         Pose nextArtifactPose = follower.getPose().plus(new Pose(offset, 0, 0));
-                        follower.followPath(new Path(new BezierLine(follower.getPose(), nextArtifactPose)));
+                        followerPathBuilder(nextArtifactPose);
                         setPathState(301); // Go back and set diverter for the next artifact.
                     }
                 }
@@ -358,37 +318,37 @@ public class BozemanAuto extends OpMode {
             case SPIKE_FRONT_AND_INTAKE:
                 currentSpikeContext = SpikeLocation.FRONT;
                 intakeColorOrder = SPIKE_FRONT_COLORS;
-                follower.followPath(new Path(new BezierLine(follower.getPose(), frontSpike)));
+                followerPathBuilder(frontSpike);
                 setPathState(300); // Enter the intake cycle state machine
                 break;
             case SPIKE_MIDDLE_AND_INTAKE:
                 currentSpikeContext = SpikeLocation.MIDDLE;
                 intakeColorOrder = SPIKE_MIDDLE_COLORS;
-                follower.followPath(new Path(new BezierLine(follower.getPose(), middleSpike)));
+                followerPathBuilder(middleSpike);
                 setPathState(300);
                 break;
             case SPIKE_BACK_AND_INTAKE:
                 currentSpikeContext = SpikeLocation.BACK;
                 intakeColorOrder = SPIKE_BACK_COLORS;
-                follower.followPath(new Path(new BezierLine(follower.getPose(), backSpike)));
+                followerPathBuilder(backSpike);
                 setPathState(300);
                 break;
             case SCORE_ALL_THREE_CLOSE:
                 scoreOrder = Arrays.asList('L', 'L', 'R'); // Set launch order: 2 Left, 1 Right
-                follower.followPath(new Path(new BezierLine(follower.getPose(), scoreClosePose)));
+                followerPathBuilder(scoreClosePose);
                 setPathState(400); // Enter the scoring cycle state machine
                 break;
             case SCORE_ALL_THREE_FAR:
                 scoreOrder = Arrays.asList('L', 'L', 'R'); // Set launch order: 2 Left, 1 Right
-                follower.followPath(new Path(new BezierLine(follower.getPose(), scoreFarPose)));
+                followerPathBuilder(scoreFarPose);
                 setPathState(400); // Enter the scoring cycle state machine
                 break;
             case HIT_GATE:
-                follower.followPath(new Path(new BezierLine(follower.getPose(), gateApproachPose)));
+                followerPathBuilder(gateApproachPose);
                 setPathState(200); // Enter the gate hitting state machine
                 break;
             case PARK:
-                follower.followPath(new Path(new BezierLine(follower.getPose(), parkPose)));
+                followerPathBuilder(parkPose);
                 setPathState(2); // Use the simple "wait" state
                 break;
         }
@@ -411,5 +371,73 @@ public class BozemanAuto extends OpMode {
                 .addPath(new BezierLine(follower.getPose(), targetPose))
                 .setLinearHeadingInterpolation(follower.getHeading(), targetPose.getHeading())
                 .build());
+    }
+
+    private void selectStartingLocation(){
+        // Allow alliance and starting position selection before the match begins.
+        if (gamepad1.dpad_left || gamepad2.dpad_left) {
+            GameState.alliance = GameState.Alliance.BLUE;
+            robot.indicatorLight.setStaticColor(IndicatorLightHardware.COLOR_BLUE);
+        }
+        if (gamepad1.dpad_right || gamepad2.dpad_right) {
+            GameState.alliance = GameState.Alliance.RED;
+            robot.indicatorLight.setStaticColor(IndicatorLightHardware.COLOR_RED);
+        }
+        if (gamepad1.dpad_up || gamepad2.dpad_up) startPosition = StartPosition.BACK;
+        if (gamepad1.dpad_down || gamepad2.dpad_down) startPosition = StartPosition.FRONT;
+
+        if (gamepad1.aWasPressed() || gamepad2.aWasPressed()){
+            isStartPoseSelected = true;
+        }
+
+        // Provide continuous feedback on the driver station
+        telemetry.addData("Selected Alliance", GameState.alliance);
+        telemetry.addData("Selected Start", startPosition);
+        telemetry.addLine("\nPress 'A/X to confirm and start building playlist");
+        telemetry.update();
+    }
+
+    private void playlistBuilder() {
+        // Allow the user to lock the playlist to prevent accidental changes
+        if (gamepad1.xWasPressed()) {
+            isPlaylistFinalized = !isPlaylistFinalized;
+        }
+
+        // Only allow modifications if the playlist is not finalized
+        if (!isPlaylistFinalized) {
+            // --- Configure Alliance and Start Position ---
+            if (gamepad1.dpadUpWasPressed()) alliance = GameState.Alliance.BLUE;
+            if (gamepad1.dpadDownWasPressed()) alliance = GameState.Alliance.RED;
+
+            if (gamepad1.leftBumperWasPressed()) startPosition = StartPosition.FRONT;
+            if (gamepad1.rightBumperWasPressed()) startPosition = StartPosition.BACK;
+
+            // --- Build the Playlist ---
+            AutoCommand[] allCommands = AutoCommand.values();
+            // Scroll through commands with D-Pad
+            if (gamepad1.dpadRightWasPressed())
+                commandMenuIndex = (commandMenuIndex + 1) % allCommands.length;
+            if (gamepad1.dpadLeftWasPressed())
+                commandMenuIndex = (commandMenuIndex - 1 + allCommands.length) % allCommands.length;
+
+            // Add, remove, or clear commands
+            if (gamepad1.aWasPressed()) autoCommands.add(allCommands[commandMenuIndex]);
+            if (gamepad1.yWasPressed()) autoCommands.clear();
+            if (gamepad1.bWasPressed() && !autoCommands.isEmpty()) {
+                autoCommands.remove(autoCommands.size() - 1);
+            }
+        }
+        // --- Display Selections on Driver Station ---
+        if (isPlaylistFinalized) {
+            telemetry.addLine("*** PLAYLIST FINALIZED (Press X to Unlock) ***");
+        } else {
+            telemetry.addLine("A: add command to playlist, B: remove last command, X: finalize playlist");
+            telemetry.addData("--> Selected Command", AutoCommand.values()[commandMenuIndex]);
+        }
+        telemetry.addLine("\nCurrent Playlist:");
+        for (int i = 0; i < autoCommands.size(); i++) {
+            telemetry.addLine((i + 1) + ". " + autoCommands.get(i));
+        }
+        telemetry.update();
     }
 }

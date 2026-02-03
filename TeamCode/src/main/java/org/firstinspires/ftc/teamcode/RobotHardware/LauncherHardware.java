@@ -16,16 +16,17 @@ public class LauncherHardware {
 
     public static final PIDFCoefficients LAUNCHER_PIDF = new PIDFCoefficients(300, 0, 0, 10);
 
-    // --- LAUNCHER SPEED INTERPOLATION CONSTANTS ---
-    // These two points define the linear relationship between distance and speed.
-    // The formula will extrapolate beyond these points for shots that are closer or farther.
+    // --- LAUNCHER SPEED INTERPOLATION CONSTANTS --- (NOW QUADRATIC)
     private static final Pose   CLOSE_SHOT_POSE   = new Pose(75, 81, 0);
     private static final double CLOSE_SHOT_RPM    = 1200.0;
+    private static final Pose   MID_SHOT_POSE     = new Pose(80, 46, 0); // New mid-point
+    private static final double MID_SHOT_RPM      = 1400.0; // RPM at the new mid-point
     private static final Pose   FAR_SHOT_POSE     = new Pose(84, 11, 0);
     private static final double FAR_SHOT_RPM      = 1350.0;
 
     // Cached distances for interpolation, calculated on first use to be safe.
     private static double closeShotDistance = -1;
+    private static double midShotDistance = -1;
     private static double farShotDistance = -1;
 
     public static final double RPM_TOLERANCE = 25;
@@ -63,7 +64,7 @@ public class LauncherHardware {
                         : FieldPosePresets.RED_GOAL_TARGET;
 
                 double distance = Math.hypot(targetGoal.getX() - robotPose.getX(), targetGoal.getY() - robotPose.getY());
-                double calculatedSpeed = interpolate(distance);
+                double calculatedSpeed = quadraticInterpolate(distance);
                 setLaunchSpeed(calculatedSpeed);
             }
 
@@ -94,16 +95,30 @@ public class LauncherHardware {
         return isSpinning;
     }
 
-    private double interpolate(double currentDistance) {
-        // Calculate the reference distances on the first call to be safe.
+    private double quadraticInterpolate(double currentDistance) {
+        // Calculate reference distances on the first call.
         if (closeShotDistance < 0) {
-            // The tuning points are on the red side, so we use the red goal as our reference for both.
+            // The tuning points are on the red side, so we use the red goal as our reference for all.
             closeShotDistance = Math.hypot(FieldPosePresets.RED_GOAL_TARGET.getX() - CLOSE_SHOT_POSE.getX(), FieldPosePresets.RED_GOAL_TARGET.getY() - CLOSE_SHOT_POSE.getY());
-            farShotDistance = Math.hypot(FieldPosePresets.RED_GOAL_TARGET.getX() - FAR_SHOT_POSE.getX(), FieldPosePresets.RED_GOAL_TARGET.getY() - FAR_SHOT_POSE.getY());
+            midShotDistance   = Math.hypot(FieldPosePresets.RED_GOAL_TARGET.getX() - MID_SHOT_POSE.getX(), FieldPosePresets.RED_GOAL_TARGET.getY() - MID_SHOT_POSE.getY());
+            farShotDistance   = Math.hypot(FieldPosePresets.RED_GOAL_TARGET.getX() - FAR_SHOT_POSE.getX(), FieldPosePresets.RED_GOAL_TARGET.getY() - FAR_SHOT_POSE.getY());
         }
 
-        // Using the classic linear interpolation formula y = y1 + (x - x1) * (y2 - y1) / (x2 - x1)
-        double calculatedSpeed = CLOSE_SHOT_RPM + ((currentDistance - closeShotDistance) * (FAR_SHOT_RPM - CLOSE_SHOT_RPM)) / (farShotDistance - closeShotDistance);
+        // Lagrange Polynomial for quadratic interpolation (y = ...)
+        double y1 = CLOSE_SHOT_RPM;
+        double y2 = MID_SHOT_RPM;
+        double y3 = FAR_SHOT_RPM;
+
+        double x1 = closeShotDistance;
+        double x2 = midShotDistance;
+        double x3 = farShotDistance;
+        double x = currentDistance;
+
+        double term1 = y1 * ((x - x2) * (x - x3)) / ((x1 - x2) * (x1 - x3));
+        double term2 = y2 * ((x - x1) * (x - x3)) / ((x2 - x1) * (x2 - x3));
+        double term3 = y3 * ((x - x1) * (x - x2)) / ((x3 - x1) * (x3 - x2));
+
+        double calculatedSpeed = term1 + term2 + term3;
         return Math.max(0, calculatedSpeed); // Prevent negative speeds
     }
 
