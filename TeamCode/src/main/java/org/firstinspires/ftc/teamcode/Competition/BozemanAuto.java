@@ -281,8 +281,11 @@ public class BozemanAuto extends OpMode {
                 break;
 
             // --- Gate Hitting Sub-States ---
-            case 200: if (!follower.isBusy()) { follower.followPath(new Path(new BezierLine(follower.getPose(), gateTriggerPose))); setPathState(201); } break;
-            case 201: if (!follower.isBusy()) { follower.followPath(new Path(new BezierLine(follower.getPose(), gateApproachPose))); setPathState(202); } break;
+            case 200: if (!follower.isBusy()) {
+                followerPathBuilder(gateApproachPose);
+                setPathState(201);
+            } break;
+            case 201: if (!follower.isBusy()) { followerPathBuilder(gateTriggerPose); setPathState(202); } break;
             case 202: if (!follower.isBusy()) advanceToNextCommand(); break;
 
             // --- Intake Cycle Sub-States (now triggered by a SPIKE_*_AND_INTAKE command) ---
@@ -397,5 +400,16 @@ public class BozemanAuto extends OpMode {
     private void advanceToNextCommand() {
         currentCommandIndex++;
         setPathState(1); // Go execute the next command (or finish if done)
+    }
+
+    /**
+     * A helper method to build the path from the robot's current position to the next target position.
+     * @param targetPose
+     */
+    private void followerPathBuilder(Pose targetPose){
+        follower.followPath(follower.pathBuilder()
+                .addPath(new BezierLine(follower.getPose(), targetPose))
+                .setLinearHeadingInterpolation(follower.getHeading(), targetPose.getHeading())
+                .build());
     }
 }

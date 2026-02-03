@@ -11,8 +11,8 @@ public class FieldPosePresets {
 
     // ========== GOAL TARGETS ==========
     // These are the center points of the goals for aiming calculations.
-    public static Pose BLUE_GOAL_TARGET = new Pose(0, 144, Math.toRadians(270));
-    public static Pose RED_GOAL_TARGET = new Pose(144, 144, Math.toRadians(270));
+    public static Pose BLUE_GOAL_TARGET = new Pose(0, 144, Math.toRadians(315));
+    public static Pose RED_GOAL_TARGET = new Pose(144, 144, Math.toRadians(45));
 
     // ========== BLUE ALLIANCE POSES ==========
     public static Pose BLUE_FRONT_START = new Pose(56, 9, Math.toRadians(90));
