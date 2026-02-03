@@ -26,10 +26,11 @@ public class Constants {
             .mass(11.5)
             .forwardZeroPowerAcceleration(-28)
             .lateralZeroPowerAcceleration(-59)
-            .translationalPIDFCoefficients(new PIDFCoefficients(0.1, 0, 0.01, 0.02))
-            .headingPIDFCoefficients(new PIDFCoefficients(0.375, 0, .1, 0.06))
-            .drivePIDFCoefficients(new FilteredPIDFCoefficients(0.73, 0.0254, 0.0001, 0.6, 0.00263))
-            .centripetalScaling(0.0006);
+            //.translationalPIDFCoefficients(new PIDFCoefficients(0.1, 0, 0.01, 0.02))
+            //.headingPIDFCoefficients(new PIDFCoefficients(0.375, 0, .1, 0.06))
+            //.drivePIDFCoefficients(new FilteredPIDFCoefficients(0.73, 0.0254, 0.0001, 0.6, 0.00263))
+            //.centripetalScaling(0.0006)
+            ;
 
     public static PathConstraints pathConstraints = new PathConstraints(0.99, 100, 1.45, 1.28);
 

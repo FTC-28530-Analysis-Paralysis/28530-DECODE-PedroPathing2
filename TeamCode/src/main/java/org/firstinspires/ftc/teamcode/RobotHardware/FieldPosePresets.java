@@ -50,6 +50,7 @@ public class FieldPosePresets {
     public static Pose RED_GATE_TRIGGER = new Pose(128, 72, Math.toRadians(0));
 
     // ========== SHARED POSES ==========
+    /** The end game parking locations. */
     public static Pose BLUE_BASE = new Pose(104.5, 33, Math.toRadians(90));
     public static Pose RED_BASE = new Pose(39.5, 33, Math.toRadians(90));
 
