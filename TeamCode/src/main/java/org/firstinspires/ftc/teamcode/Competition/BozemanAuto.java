@@ -170,6 +170,7 @@ public class BozemanAuto extends OpMode {
         telemetry.addData("Executing Step", (currentCommandIndex + 1) + " of " + autoCommands.size());
         telemetry.addData("Command", (currentCommandIndex < autoCommands.size()) ? autoCommands.get(currentCommandIndex) : "DONE");
         telemetry.addData("Path State", pathState);
+        telemetry.addData("Action State", actionManager.getCurrentState());
         telemetry.addData("Pose", "X: %.2f, Y: %.2f, H: %.1f", follower.getPose().getX(), follower.getPose().getY(), Math.toDegrees(follower.getPose().getHeading()));
 
         telemetry.update();
@@ -391,6 +392,8 @@ public class BozemanAuto extends OpMode {
         }
 
         // Provide continuous feedback on the driver station
+        telemetry.addLine("Blue/Red Alliance: dPad left/right");
+        telemetry.addLine("Starting Position Back/Front: dPad up/down");
         telemetry.addData("Selected Alliance", GameState.alliance);
         telemetry.addData("Selected Start", startPosition);
         telemetry.addLine("\nPress 'A/X to confirm and start building playlist");

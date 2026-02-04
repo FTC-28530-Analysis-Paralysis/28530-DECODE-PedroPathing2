@@ -302,8 +302,7 @@ public class BozemanTeleop extends OpMode {
             }
         }
 
-        // Trigger the Auto-Park sequence, ONLY if localization is reliable.
-        // This is the primary safety check to prevent autonomous movement with a bad pose.
+        // Trigger the Auto-Park sequence with the 'B' button.
         if (gamepad1.bWasPressed()) {
             Pose parkPose = (GameState.alliance == GameState.Alliance.BLUE) ? FieldPosePresets.BLUE_BASE : FieldPosePresets.RED_BASE;
             Pose currentPose = follower.getPose();
@@ -343,6 +342,7 @@ public class BozemanTeleop extends OpMode {
     private void updateTelemetry() {
         telemetry.addData("TeleOp State", currentState.toString());
         telemetry.addData("Drive Mode", driverAssist.getMode().toString());
+        telemetry.addData("Action State", actionManager.getCurrentState());
         telemetry.addData("Diverter", diverterState.toString());
         telemetry.addData("Alliance", GameState.alliance.toString());
         telemetry.addData("Launcher Target RPM", "%.1f", robot.launcher.getTargetRPM());

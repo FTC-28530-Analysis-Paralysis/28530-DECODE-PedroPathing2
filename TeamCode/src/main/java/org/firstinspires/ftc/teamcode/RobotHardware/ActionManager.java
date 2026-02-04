@@ -11,7 +11,7 @@ public class ActionManager {
     private final ColorDiverterHardware colorDiverter;
     private final ElapsedTime actionTimer = new ElapsedTime();
 
-    private static final double FEED_TIME_SECONDS = 0.8; // Duration to runLeft the feeder for a single shot
+    private static final double FEED_TIME_SECONDS = 1.2; // Duration to runLeft the feeder for a single shot
     private static final double FIRE_COMMAND_TIMEOUT_SECONDS = 0.75; // Time to wait for launcher to be ready
 
     public enum ActionState {
@@ -46,6 +46,7 @@ public class ActionManager {
                     // Launcher is ready, fire now!
                     currentState = ActionState.FIRING_ARTIFACT;
                     feeder.runLeft();
+                    intake.run();
                     actionTimer.reset();
                 } else if (actionTimer.seconds() > FIRE_COMMAND_TIMEOUT_SECONDS) {
                     // Timeout exceeded, cancel the fire command.
@@ -57,6 +58,7 @@ public class ActionManager {
                     // Launcher is ready, fire now!
                     currentState = ActionState.FIRING_ARTIFACT;
                     feeder.runRight();
+                    intake.run();
                     actionTimer.reset();
                 } else if (actionTimer.seconds() > FIRE_COMMAND_TIMEOUT_SECONDS) {
                     // Timeout exceeded, cancel the fire command.
@@ -67,6 +69,7 @@ public class ActionManager {
             case LEFT_LAUNCHING_SPINUP:
                 if (launcher.isAtTargetSpeed()) {
                     feeder.runLeft();
+                    intake.run();
                     actionTimer.reset();
                     currentState = ActionState.LAUNCHING_FIRE;
                 }
@@ -74,6 +77,7 @@ public class ActionManager {
             case RIGHT_LAUNCHING_SPINUP:
                 if (launcher.isAtTargetSpeed()) {
                     feeder.runRight();
+                    intake.run();
                     actionTimer.reset();
                     currentState = ActionState.LAUNCHING_FIRE;
                 }
@@ -81,7 +85,7 @@ public class ActionManager {
 
             case LAUNCHING_FIRE: // This is part of the auto-launch sequence
                 if (actionTimer.seconds() > FEED_TIME_SECONDS) {
-                    stopAll();
+                    feeder.stop();
                     currentState = ActionState.ACTION_COMPLETE;
                 }
                 break;
@@ -125,6 +129,7 @@ public class ActionManager {
             // Already at speed, fire immediately.
             currentState = ActionState.FIRING_ARTIFACT;
             feeder.runLeft();
+            intake.run();
             actionTimer.reset();
         } else {
             // Not at speed, so we enter the waiting state with a timeout.
@@ -145,6 +150,7 @@ public class ActionManager {
             // Already at speed, fire immediately.
             currentState = ActionState.FIRING_ARTIFACT;
             feeder.runRight();
+            intake.run();
             actionTimer.reset();
         } else {
             // Not at speed, so we enter the waiting state with a timeout.
@@ -183,5 +189,9 @@ public class ActionManager {
         launcher.stop();
         feeder.stop();
         currentState = ActionState.IDLE;
+    }
+
+    public ActionState getActionState(){
+        return currentState;
     }
 }
