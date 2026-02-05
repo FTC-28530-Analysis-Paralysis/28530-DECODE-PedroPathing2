@@ -376,24 +376,24 @@ public class BozemanAuto extends OpMode {
 
     private void selectStartingLocation(){
         // Allow alliance and starting position selection before the match begins.
-        if (gamepad1.dpad_left || gamepad2.dpad_left) {
+        if (gamepad1.dpad_up || gamepad2.dpad_left) {
             GameState.alliance = GameState.Alliance.BLUE;
             robot.indicatorLight.setStaticColor(IndicatorLightHardware.COLOR_BLUE);
         }
-        if (gamepad1.dpad_right || gamepad2.dpad_right) {
+        if (gamepad1.dpad_down || gamepad2.dpad_right) {
             GameState.alliance = GameState.Alliance.RED;
             robot.indicatorLight.setStaticColor(IndicatorLightHardware.COLOR_RED);
         }
-        if (gamepad1.dpad_up || gamepad2.dpad_up) startPosition = StartPosition.BACK;
-        if (gamepad1.dpad_down || gamepad2.dpad_down) startPosition = StartPosition.FRONT;
+        if (gamepad1.left_bumper || gamepad2.dpad_up) startPosition = StartPosition.BACK;
+        if (gamepad1.right_bumper || gamepad2.dpad_down) startPosition = StartPosition.FRONT;
 
         if (gamepad1.aWasPressed() || gamepad2.aWasPressed()){
             isStartPoseSelected = true;
         }
 
         // Provide continuous feedback on the driver station
-        telemetry.addLine("Blue/Red Alliance: dPad left/right");
-        telemetry.addLine("Starting Position Back/Front: dPad up/down");
+        telemetry.addLine("Blue/Red Alliance: dPad up/down");
+        telemetry.addLine("Starting Position Back/Front: bumper left/right");
         telemetry.addData("Selected Alliance", GameState.alliance);
         telemetry.addData("Selected Start", startPosition);
         telemetry.addLine("\nPress 'A/X to confirm and start building playlist");

@@ -19,11 +19,11 @@ public class FieldPosePresets {
     public static Pose BLUE_BACK_START = new Pose(33, 135, Math.toRadians(270));
 
     public static Pose BLUE_SCORE_CLOSE_TO_GOAL = new Pose(60, 84, Math.toRadians(135));
-    public static Pose BLUE_SCORE_FAR_FROM_GOAL = new Pose(54, 12, Math.toRadians(115));
+    public static Pose BLUE_SCORE_FAR_FROM_GOAL = new Pose(57, 19, Math.toRadians(112.5));
 
-    public static Pose BLUE_PICKUP_FRONT_SPIKE = new Pose(40, 36, Math.toRadians(180));
-    public static Pose BLUE_PICKUP_MIDDLE_SPIKE = new Pose(40, 60, Math.toRadians(180));
-    public static Pose BLUE_PICKUP_BACK_SPIKE = new Pose(40, 84, Math.toRadians(180));
+    public static Pose BLUE_PICKUP_FRONT_SPIKE = new Pose(40, 35, Math.toRadians(180));
+    public static Pose BLUE_PICKUP_MIDDLE_SPIKE = new Pose(40, 57, Math.toRadians(180));
+    public static Pose BLUE_PICKUP_BACK_SPIKE = new Pose(40, 81, Math.toRadians(180));
 
     public static Pose BLUE_AUTO_PARK = new Pose(60, 60, Math.toRadians(180));
 
@@ -37,11 +37,11 @@ public class FieldPosePresets {
     public static Pose RED_BACK_START = new Pose(111, 135, Math.toRadians(270));
 
     public static Pose RED_SCORE_CLOSE_TO_GOAL = new Pose(84, 84, Math.toRadians(45));
-    public static Pose RED_SCORE_FAR_FROM_GOAL = new Pose(90, 12, Math.toRadians(63.5));
+    public static Pose RED_SCORE_FAR_FROM_GOAL = new Pose(90, 19, Math.toRadians(63.5));
 
-    public static Pose RED_PICKUP_FRONT_SPIKE = new Pose(104, 36, Math.toRadians(0));
-    public static Pose RED_PICKUP_MIDDLE_SPIKE = new Pose(104, 60, Math.toRadians(0));
-    public static Pose RED_PICKUP_BACK_SPIKE = new Pose(104, 84, Math.toRadians(0));
+    public static Pose RED_PICKUP_FRONT_SPIKE = new Pose(102.5, 35, Math.toRadians(0));
+    public static Pose RED_PICKUP_MIDDLE_SPIKE = new Pose(102.5, 57, Math.toRadians(0));
+    public static Pose RED_PICKUP_BACK_SPIKE = new Pose(102.5, 81, Math.toRadians(0));
 
     public static Pose RED_AUTO_PARK = new Pose(84, 60, Math.toRadians(0));
 
