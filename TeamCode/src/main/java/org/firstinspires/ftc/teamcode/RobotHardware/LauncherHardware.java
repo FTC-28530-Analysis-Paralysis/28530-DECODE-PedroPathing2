@@ -22,7 +22,7 @@ public class LauncherHardware {
     private static final Pose   MID_SHOT_POSE     = new Pose(72, 72, Math.toRadians(45)); // New mid-point
     private static final double MID_SHOT_RPM      = 2500.0; // RPM at the new mid-point
     private static final Pose   FAR_SHOT_POSE     = new Pose(90, 12, 0);
-    private static final double FAR_SHOT_RPM      = 2760.0;
+    private static final double FAR_SHOT_RPM      = 2810.0;
 
     // Cached distances for interpolation, calculated on first use to be safe.
     private static double closeShotDistance = -1;
