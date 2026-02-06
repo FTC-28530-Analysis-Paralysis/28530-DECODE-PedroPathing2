@@ -51,31 +51,17 @@ public class BozemanAuto extends OpMode {
 
     /** Represents the two starting positions on the field. */
     private enum StartPosition { FRONT, BACK }
-
-    /**
-     * These are the high-level commands the drive team can choose from to build their playlist.
-     * Each command represents a complete action, like moving to a spike and intaking.
-     */
-    private enum AutoCommand {
-        SCORE_ALL_THREE_CLOSE,
-        SCORE_ALL_THREE_FAR,
-        SPIKE_FRONT_AND_INTAKE,
-        SPIKE_MIDDLE_AND_INTAKE,
-        SPIKE_BACK_AND_INTAKE,
-        HIT_GATE,
-        PARK
+    private enum SpikeLocation { FRONT, MIDDLE, BACK }
+    public enum AutoCommand {
+        SPIKE_FRONT_AND_INTAKE, SPIKE_MIDDLE_AND_INTAKE, SPIKE_BACK_AND_INTAKE,
+        SCORE_ALL_THREE_CLOSE, SCORE_ALL_THREE_FAR, HIT_GATE, PARK
     }
 
-    /** A helper enum to keep track of which spike mark we are currently at. */
-    private enum SpikeLocation { NONE, FRONT, MIDDLE, BACK }
-
-    // --- Default selections, can be changed by the driver during init ---
-    private GameState.Alliance alliance = GameState.Alliance.BLUE;
-    private StartPosition startPosition = StartPosition.FRONT;
-    private SpikeLocation currentSpikeContext = SpikeLocation.NONE;
-
-    // --- Playlist variables ---
-    private ArrayList<AutoCommand> autoCommands = new ArrayList<>(); // The list of commands to runLeft
+    // ========== AUTONOMOUS PLAYLIST BUILDER MEMBERS ========== //
+    private GameState.Alliance alliance = GameState.Alliance.BLUE; // Default alliance
+    private StartPosition startPosition = StartPosition.FRONT; // Default start position
+    private SpikeLocation currentSpikeContext;  // Which spike we are currently targeting
+    private ArrayList<AutoCommand> autoCommands = new ArrayList<>(); // The list of commands to execute
     private int commandMenuIndex = 0;           // The currently selected command in the D-Pad menu
     private int currentCommandIndex = 0;        // The index of the command currently being executed
     private boolean isStartPoseSelected = false; // A flag to finish alliance and starting location selection before moving onto playlist building
@@ -97,11 +83,7 @@ public class BozemanAuto extends OpMode {
     // --- Cycle counters, used to track progress through multi-step actions ---
     private int intakeCycleArtifactCount = 0; // How many Artifacts we've collected in the current intake cycle
     private int scoreCycleArtifactCount = 0;  // How many Artifacts we've launched in the current scoring cycle
-    private List<Character> intakeColorOrder = new ArrayList<>(); // The expected order of Artifact colors
     private List<Character> scoreOrder = new ArrayList<>(); // The order to launch artifacts (L/R)
-    private final List<Character> SPIKE_FRONT_COLORS = Arrays.asList('G', 'P', 'P');
-    private final List<Character> SPIKE_MIDDLE_COLORS = Arrays.asList('P', 'G', 'P');
-    private final List<Character> SPIKE_BACK_COLORS = Arrays.asList('P', 'P', 'G');
     private final double INTAKE_OFFSET_DISTANCE = 6.0; // Distance to move between Artifacts in a stack
 
     /**
@@ -172,7 +154,6 @@ public class BozemanAuto extends OpMode {
         telemetry.addData("Path State", pathState);
         telemetry.addData("Action State", actionManager.getCurrentState());
         telemetry.addData("Pose", "X: %.2f, Y: %.2f, H: %.1f", follower.getPose().getX(), follower.getPose().getY(), Math.toDegrees(follower.getPose().getHeading()));
-
         telemetry.update();
     }
 
@@ -249,35 +230,47 @@ public class BozemanAuto extends OpMode {
             case 201: if (!follower.isBusy()) { followerPathBuilder(gateApproachPose); setPathState(202); } break;
             case 202: if (!follower.isBusy()) advanceToNextCommand(); break;
 
-            // --- Intake Cycle Sub-States (now triggered by a SPIKE_*_AND_INTAKE command) ---
-            case 300: // Wait for arrival at the spike mark.
+            // --- Intake Cycle Sub-States (SPIKE_*_AND_INTAKE commands) ---
+            case 300: // Wait for arrival at the first spike mark.
                 if (!follower.isBusy()) {
-                    intakeCycleArtifactCount = 0; // Reset counter for the new cycle
+                    intakeCycleArtifactCount = 0; // Reset for the new cycle
                     setPathState(301);
                 }
                 break;
-            case 301: // Set the diverter to the correct color for the first artifact.
+
+            case 301: // Set diverter (if needed) and start the timed intake action.
                 if (!actionManager.isBusy()) {
-                    char expectedColor = intakeColorOrder.get(intakeCycleArtifactCount);
-                    if (expectedColor == 'P') actionManager.setDiverterPurple(); else actionManager.setDiverterGreen();
+                    if (intakeCycleArtifactCount == 0) {
+                        actionManager.setDiverterGreen();
+                    } else if (intakeCycleArtifactCount == 1) {
+                        actionManager.setDiverterPurple();
+                    }
+                    robot.intake.run(); // Run intake for 1 second to ensure capture.
                     setPathState(302);
                 }
                 break;
-            case 302: // Start the intake motor.
-                robot.intake.run();
-                setPathState(303);
-                break;
-            case 303: // Wait for the intake action to complete.
+
+            case 302: // Wait for the timed intake to complete.
                 if (!actionManager.isBusy()) {
                     intakeCycleArtifactCount++;
-                    if (intakeCycleArtifactCount >= 3) { // If we have all 3 artifacts...
-                        advanceToNextCommand();      // ...then this command is done.
-                    } else { // Otherwise, move to the next artifact in the stack.
-                        double offset = (alliance == GameState.Alliance.BLUE) ? -INTAKE_OFFSET_DISTANCE : INTAKE_OFFSET_DISTANCE;
-                        Pose nextArtifactPose = follower.getPose().plus(new Pose(offset, 0, 0));
-                        followerPathBuilder(nextArtifactPose);
-                        setPathState(301); // Go back and set diverter for the next artifact.
-                    }
+                    setPathState(303);
+                }
+                break;
+
+            case 303: // Check if we're done, or calculate the move to the next artifact.
+                if (intakeCycleArtifactCount >= 3) {
+                    advanceToNextCommand(); // We have all three, move on.
+                } else {
+                    double offset = (alliance == GameState.Alliance.BLUE) ? -INTAKE_OFFSET_DISTANCE : INTAKE_OFFSET_DISTANCE;
+                    Pose nextArtifactPose = follower.getPose().plus(new Pose(offset, 0, 0));
+                    followerPathBuilder(nextArtifactPose);
+                    setPathState(304); // Go to a state that waits for the move to finish.
+                }
+                break;
+
+            case 304: // Wait for the robot to finish moving to the next artifact.
+                if (!follower.isBusy()) {
+                    setPathState(301); // Once there, go back to the intake state to get the next one.
                 }
                 break;
 
@@ -309,28 +302,20 @@ public class BozemanAuto extends OpMode {
         }
     }
 
-    /**
-     * This method translates a high-level AutoCommand from the playlist into a concrete
-     * action for the robot, like following a path or entering a state machine sequence.
-     * @param command The command to execute.
-     */
     private void executeCommand(AutoCommand command) {
         switch (command) {
             case SPIKE_FRONT_AND_INTAKE:
                 currentSpikeContext = SpikeLocation.FRONT;
-                intakeColorOrder = SPIKE_FRONT_COLORS;
                 followerPathBuilder(frontSpike);
                 setPathState(300); // Enter the intake cycle state machine
                 break;
             case SPIKE_MIDDLE_AND_INTAKE:
                 currentSpikeContext = SpikeLocation.MIDDLE;
-                intakeColorOrder = SPIKE_MIDDLE_COLORS;
                 followerPathBuilder(middleSpike);
                 setPathState(300);
                 break;
             case SPIKE_BACK_AND_INTAKE:
                 currentSpikeContext = SpikeLocation.BACK;
-                intakeColorOrder = SPIKE_BACK_COLORS;
                 followerPathBuilder(backSpike);
                 setPathState(300);
                 break;
@@ -375,7 +360,6 @@ public class BozemanAuto extends OpMode {
     }
 
     private void selectStartingLocation(){
-        // Allow alliance and starting position selection before the match begins.
         if (gamepad1.dpad_up || gamepad2.dpad_left) {
             GameState.alliance = GameState.Alliance.BLUE;
             robot.indicatorLight.setStaticColor(IndicatorLightHardware.COLOR_BLUE);
@@ -408,20 +392,9 @@ public class BozemanAuto extends OpMode {
 
         // Only allow modifications if the playlist is not finalized
         if (!isPlaylistFinalized) {
-            // --- Configure Alliance and Start Position ---
-            if (gamepad1.dpadUpWasPressed()) alliance = GameState.Alliance.BLUE;
-            if (gamepad1.dpadDownWasPressed()) alliance = GameState.Alliance.RED;
-
-            if (gamepad1.leftBumperWasPressed()) startPosition = StartPosition.FRONT;
-            if (gamepad1.rightBumperWasPressed()) startPosition = StartPosition.BACK;
-
-            // --- Build the Playlist ---
             AutoCommand[] allCommands = AutoCommand.values();
-            // Scroll through commands with D-Pad
-            if (gamepad1.dpadRightWasPressed())
-                commandMenuIndex = (commandMenuIndex + 1) % allCommands.length;
-            if (gamepad1.dpadLeftWasPressed())
-                commandMenuIndex = (commandMenuIndex - 1 + allCommands.length) % allCommands.length;
+            if (gamepad1.dpadRightWasPressed()) commandMenuIndex = (commandMenuIndex + 1) % allCommands.length;
+            if (gamepad1.dpadLeftWasPressed()) commandMenuIndex = (commandMenuIndex - 1 + allCommands.length) % allCommands.length;
 
             // Add, remove, or clear commands
             if (gamepad1.aWasPressed()) autoCommands.add(allCommands[commandMenuIndex]);
@@ -437,9 +410,10 @@ public class BozemanAuto extends OpMode {
             telemetry.addLine("A: add command to playlist, B: remove last command, X: finalize playlist");
             telemetry.addData("--> Selected Command", AutoCommand.values()[commandMenuIndex]);
         }
+        telemetry.addData("Alliance", alliance).addData("Start", startPosition);
         telemetry.addLine("\nCurrent Playlist:");
         for (int i = 0; i < autoCommands.size(); i++) {
-            telemetry.addLine((i + 1) + ". " + autoCommands.get(i));
+            telemetry.addLine((i+1) + ". " + autoCommands.get(i));
         }
         telemetry.update();
     }
