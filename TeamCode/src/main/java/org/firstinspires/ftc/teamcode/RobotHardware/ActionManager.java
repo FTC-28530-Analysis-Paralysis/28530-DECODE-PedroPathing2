@@ -16,12 +16,10 @@ public class ActionManager {
 
     public enum ActionState {
         IDLE,
-        LEFT_WAITING_FOR_LAUNCHER_SPEED,
-        RIGHT_WAITING_FOR_LAUNCHER_SPEED,
-        LEFT_LAUNCHING_SPINUP,
-        RIGHT_LAUNCHING_SPINUP,
-        LAUNCHING_FIRE,
-        WAITING_FOR_LAUNCHER_SPEED, // New state for fire-with-timeout
+        LEFT_TELEOP_LAUNCH_SPINUP,
+        RIGHT_TELEOP_LAUNCH_SPINUP,
+        LEFT_AUTO_LAUNCH_SPINUP,
+        RIGHT_AUTO_LAUNCH_SPINUP,
         FIRING_ARTIFACT,
         REVERSING,
         ACTION_COMPLETE
@@ -41,7 +39,7 @@ public class ActionManager {
             case IDLE: case ACTION_COMPLETE: case REVERSING:
                 break; // No timed logic in these states
 
-            case LEFT_WAITING_FOR_LAUNCHER_SPEED:
+            case LEFT_TELEOP_LAUNCH_SPINUP:
                 if (launcher.isAtTargetSpeed()) {
                     // Launcher is ready, fire now!
                     currentState = ActionState.FIRING_ARTIFACT;
@@ -53,7 +51,7 @@ public class ActionManager {
                     currentState = ActionState.IDLE;
                 }
                 break;
-            case RIGHT_WAITING_FOR_LAUNCHER_SPEED:
+            case RIGHT_TELEOP_LAUNCH_SPINUP:
                 if (launcher.isAtTargetSpeed()) {
                     // Launcher is ready, fire now!
                     currentState = ActionState.FIRING_ARTIFACT;
@@ -66,31 +64,24 @@ public class ActionManager {
                 }
                 break;
 
-            case LEFT_LAUNCHING_SPINUP:
-                if (launcher.isAtTargetSpeed()) {
+            case LEFT_AUTO_LAUNCH_SPINUP:
+                if (launcher.isAtTargetSpeed() || actionTimer.seconds() > FIRE_COMMAND_TIMEOUT_SECONDS) {
                     feeder.runLeft();
                     intake.run();
                     actionTimer.reset();
-                    currentState = ActionState.LAUNCHING_FIRE;
+                    currentState = ActionState.FIRING_ARTIFACT;
                 }
                 break;
-            case RIGHT_LAUNCHING_SPINUP:
-                if (launcher.isAtTargetSpeed()) {
+            case RIGHT_AUTO_LAUNCH_SPINUP:
+                if (launcher.isAtTargetSpeed() || actionTimer.seconds() > FIRE_COMMAND_TIMEOUT_SECONDS) {
                     feeder.runRight();
                     intake.run();
                     actionTimer.reset();
-                    currentState = ActionState.LAUNCHING_FIRE;
+                    currentState = ActionState.FIRING_ARTIFACT;
                 }
                 break;
 
-            case LAUNCHING_FIRE: // This is part of the auto-launch sequence
-                if (actionTimer.seconds() > FEED_TIME_SECONDS) {
-                    feeder.stop();
-                    currentState = ActionState.ACTION_COMPLETE;
-                }
-                break;
-
-            case FIRING_ARTIFACT: // The new state for TeleOp artifact firing
+            case FIRING_ARTIFACT:
                 if (actionTimer.seconds() > FEED_TIME_SECONDS) {
                     feeder.stop();
                     currentState = ActionState.IDLE; // Return to idle, ready for next command
@@ -107,13 +98,13 @@ public class ActionManager {
     /** This is a full launch sequence, good for autonomous. It spins up and then fires. */
     public void startLeftLaunch() {
         if (isBusy()) return;
-        currentState = ActionState.LEFT_LAUNCHING_SPINUP;
+        currentState = ActionState.LEFT_AUTO_LAUNCH_SPINUP;
         launcher.start(); // Corrected method call
     }
     /** This is a full launch sequence, good for autonomous. It spins up and then fires. */
     public void startRightLaunch() {
         if (isBusy()) return;
-        currentState = ActionState.RIGHT_LAUNCHING_SPINUP;
+        currentState = ActionState.RIGHT_AUTO_LAUNCH_SPINUP;
         launcher.start(); // Corrected method call
     }
 
@@ -133,7 +124,7 @@ public class ActionManager {
             actionTimer.reset();
         } else {
             // Not at speed, so we enter the waiting state with a timeout.
-            currentState = ActionState.WAITING_FOR_LAUNCHER_SPEED;
+            currentState = ActionState.LEFT_TELEOP_LAUNCH_SPINUP;
             actionTimer.reset();
         }
     }
@@ -154,7 +145,7 @@ public class ActionManager {
             actionTimer.reset();
         } else {
             // Not at speed, so we enter the waiting state with a timeout.
-            currentState = ActionState.WAITING_FOR_LAUNCHER_SPEED;
+            currentState = ActionState.RIGHT_TELEOP_LAUNCH_SPINUP;
             actionTimer.reset();
         }
     }
