@@ -11,8 +11,11 @@ public class ActionManager {
     private final ColorDiverterHardware colorDiverter;
     private final ElapsedTime actionTimer = new ElapsedTime();
 
+    private static final double TELEOP_FIRE_COMMAND_TIMEOUT_SECONDS = .75;
+    //todo: if one second for fire command timeout is to long for teleop use this for the teleop cases instead as it was the normal time for before
+
     private static final double FEED_TIME_SECONDS = 1.2; // Duration to runLeft the feeder for a single shot
-    private static final double FIRE_COMMAND_TIMEOUT_SECONDS = 0.75; // Time to wait for launcher to be ready
+    private static final double AUTO_FIRE_COMMAND_TIMEOUT_SECONDS = 1; // Time to wait for launcher to be ready
 
     public enum ActionState {
         IDLE,
@@ -46,7 +49,7 @@ public class ActionManager {
                     feeder.runLeft();
                     intake.run();
                     actionTimer.reset();
-                } else if (actionTimer.seconds() > FIRE_COMMAND_TIMEOUT_SECONDS) {
+                } else if (actionTimer.seconds() > TELEOP_FIRE_COMMAND_TIMEOUT_SECONDS) {
                     // Timeout exceeded, cancel the fire command.
                     currentState = ActionState.IDLE;
                 }
@@ -58,14 +61,14 @@ public class ActionManager {
                     feeder.runRight();
                     intake.run();
                     actionTimer.reset();
-                } else if (actionTimer.seconds() > FIRE_COMMAND_TIMEOUT_SECONDS) {
+                } else if (actionTimer.seconds() > TELEOP_FIRE_COMMAND_TIMEOUT_SECONDS) {
                     // Timeout exceeded, cancel the fire command.
                     currentState = ActionState.IDLE;
                 }
                 break;
 
             case LEFT_AUTO_LAUNCH_SPINUP:
-                if (launcher.isAtTargetSpeed() || actionTimer.seconds() > FIRE_COMMAND_TIMEOUT_SECONDS) {
+                if (launcher.isAtTargetSpeed() || actionTimer.seconds() > AUTO_FIRE_COMMAND_TIMEOUT_SECONDS) {
                     feeder.runLeft();
                     intake.run();
                     actionTimer.reset();
@@ -73,7 +76,7 @@ public class ActionManager {
                 }
                 break;
             case RIGHT_AUTO_LAUNCH_SPINUP:
-                if (launcher.isAtTargetSpeed() || actionTimer.seconds() > FIRE_COMMAND_TIMEOUT_SECONDS) {
+                if (launcher.isAtTargetSpeed() || actionTimer.seconds() > AUTO_FIRE_COMMAND_TIMEOUT_SECONDS) {
                     feeder.runRight();
                     intake.run();
                     actionTimer.reset();

@@ -251,7 +251,7 @@ public class BozemanAuto extends OpMode {
                 break;
 
             case 302: // Wait for 1 second for the artifact to be fully captured.
-                if (timer.seconds() > 1.0) {
+                if (timer.seconds() > .67) {
                     intakeCycleArtifactCount++;
                     setPathState(303);
                 }
