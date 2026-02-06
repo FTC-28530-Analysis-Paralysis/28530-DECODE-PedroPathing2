@@ -320,12 +320,12 @@ public class BozemanAuto extends OpMode {
                 setPathState(300);
                 break;
             case SCORE_ALL_THREE_CLOSE:
-                scoreOrder = Arrays.asList('L', 'L', 'R'); // Set launch order: 2 Left, 1 Right
+                scoreOrder = Arrays.asList('L', 'L', 'R', 'R'); // Set launch order: 2 Left, 2 Right to be sure we get all the balls launched
                 followerPathBuilder(scoreClosePose);
                 setPathState(400); // Enter the scoring cycle state machine
                 break;
             case SCORE_ALL_THREE_FAR:
-                scoreOrder = Arrays.asList('L', 'L', 'R'); // Set launch order: 2 Left, 1 Right
+                scoreOrder = Arrays.asList('L', 'L', 'R', 'R'); // Set launch order: 2 Left, 2 Right to be sure we get all the balls launched
                 followerPathBuilder(scoreFarPose);
                 setPathState(400); // Enter the scoring cycle state machine
                 break;

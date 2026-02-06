@@ -270,9 +270,9 @@ public class BozemanTeleop extends OpMode {
         if (gamepad1.dpadRightWasPressed()) {
             switch (driverAssist.getMode()) {
                 case ROBOT_CENTRIC:
-                    driverAssist.setMode(DriverAssist.DriveMode.FC_TARGET_LOCK);
+                    driverAssist.setMode(DriverAssist.DriveMode.RC_TARGET_LOCK);
                     break;
-                case FC_TARGET_LOCK:
+                case RC_TARGET_LOCK:
                     driverAssist.setMode(DriverAssist.DriveMode.ROBOT_CENTRIC);
                     break;
             }
