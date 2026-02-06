@@ -34,9 +34,11 @@ import java.util.List;
  * - State Persistence: Saves the robot's final pose and alliance to the static `GameState`,
  *   allowing `BozemanTeleop` to seamlessly take over with full field awareness.
  *
+ * --- ALLIANCE & STARTING POSITION SELECTION
+ * D-Pad Left/Right:  Select Alliance (Blue/Red)
+ * D-Pad Up/Down:     Select Starting Position (Front/Back)
+ *
  * --- PLAYLIST BUILDER CONTROLS (GAMEPAD 1 - INIT) ---
- * D-Pad Up/Down:   Select Alliance (Blue/Red)
- * Left/Right Bumper: Select Starting Position (Front/Back)
  * D-Pad Left/Right:  Scroll through the list of available auto commands.
  * A Button:          Add the currently selected command to the playlist.
  * B Button:          Remove the last command from the playlist.
@@ -230,7 +232,7 @@ public class BozemanAuto extends OpMode {
             case 201: if (!follower.isBusy()) { followerPathBuilder(gateApproachPose); setPathState(202); } break;
             case 202: if (!follower.isBusy()) advanceToNextCommand(); break;
 
-            // --- Intake Cycle Sub-States (SPIKE_*_AND_INTAKE commands) ---
+            // --- Intake Cycle Sub-States ---
             case 300: // Wait for arrival at the first spike mark.
                 if (!follower.isBusy()) {
                     intakeCycleArtifactCount = 0; // Reset for the new cycle
@@ -238,28 +240,26 @@ public class BozemanAuto extends OpMode {
                 }
                 break;
 
-            case 301: // Set diverter (if needed) and start the timed intake action.
-                if (!actionManager.isBusy()) {
-                    if (intakeCycleArtifactCount == 0) {
-                        actionManager.setDiverterGreen();
-                    } else if (intakeCycleArtifactCount == 1) {
-                        actionManager.setDiverterPurple();
-                    }
-                    robot.intake.run(); // Run intake for 1 second to ensure capture.
-                    setPathState(302);
+            case 301: // Set diverter and prepare for timed intake.
+                if (intakeCycleArtifactCount == 0) {
+                    actionManager.setDiverterGreen();
+                } else if (intakeCycleArtifactCount == 1) {
+                    actionManager.setDiverterPurple();
                 }
+                robot.intake.run();
+                setPathState(302); // Move to the waiting state, which resets the timer.
                 break;
 
-            case 302: // Wait for the timed intake to complete.
-                if (!actionManager.isBusy()) {
+            case 302: // Wait for 1 second for the artifact to be fully captured.
+                if (timer.seconds() > 1.0) {
                     intakeCycleArtifactCount++;
                     setPathState(303);
                 }
                 break;
 
-            case 303: // Check if we're done, or calculate the move to the next artifact.
+            case 303: // Check if we're done, or move to the next artifact.
                 if (intakeCycleArtifactCount >= 3) {
-                    advanceToNextCommand(); // We have all three, move on.
+                    advanceToNextCommand(); // We have all three, command is done.
                 } else {
                     double offset = (alliance == GameState.Alliance.BLUE) ? -INTAKE_OFFSET_DISTANCE : INTAKE_OFFSET_DISTANCE;
                     Pose nextArtifactPose = follower.getPose().plus(new Pose(offset, 0, 0));
@@ -270,7 +270,7 @@ public class BozemanAuto extends OpMode {
 
             case 304: // Wait for the robot to finish moving to the next artifact.
                 if (!follower.isBusy()) {
-                    setPathState(301); // Once there, go back to the intake state to get the next one.
+                    setPathState(301); // Once there, go back to intake the next one.
                 }
                 break;
 
@@ -281,8 +281,8 @@ public class BozemanAuto extends OpMode {
                     setPathState(401);
                 }
                 break;
-            case 401: // This is a loop that fires all three artifacts.
-                if (!actionManager.isBusy()) { // Wait for the previous shot to complete.
+            case 401: // Fire all three artifacts in the specified order.
+                if (!actionManager.isBusy()) {
                     if (scoreCycleArtifactCount < scoreOrder.size()) {
                         char launchSide = scoreOrder.get(scoreCycleArtifactCount);
                         if (launchSide == 'L') {
@@ -360,27 +360,27 @@ public class BozemanAuto extends OpMode {
     }
 
     private void selectStartingLocation(){
-        if (gamepad1.dpad_up || gamepad2.dpad_left) {
-            GameState.alliance = GameState.Alliance.BLUE;
+        if (gamepad1.dpad_left || gamepad2.dpad_left) {
+            alliance = GameState.Alliance.BLUE;
             robot.indicatorLight.setStaticColor(IndicatorLightHardware.COLOR_BLUE);
         }
-        if (gamepad1.dpad_down || gamepad2.dpad_right) {
-            GameState.alliance = GameState.Alliance.RED;
+        if (gamepad1.dpad_right || gamepad2.dpad_right) {
+            alliance = GameState.Alliance.RED;
             robot.indicatorLight.setStaticColor(IndicatorLightHardware.COLOR_RED);
         }
-        if (gamepad1.left_bumper || gamepad2.dpad_up) startPosition = StartPosition.BACK;
-        if (gamepad1.right_bumper || gamepad2.dpad_down) startPosition = StartPosition.FRONT;
+        if (gamepad1.dpad_up || gamepad2.dpad_up) startPosition = StartPosition.BACK;
+        if (gamepad1.dpad_down || gamepad2.dpad_down) startPosition = StartPosition.FRONT;
 
         if (gamepad1.aWasPressed() || gamepad2.aWasPressed()){
             isStartPoseSelected = true;
         }
 
         // Provide continuous feedback on the driver station
-        telemetry.addLine("Blue/Red Alliance: dPad up/down");
-        telemetry.addLine("Starting Position Back/Front: bumper left/right");
-        telemetry.addData("Selected Alliance", GameState.alliance);
+        telemetry.addLine("Blue/Red Alliance: dPad left/right");
+        telemetry.addLine("Starting Position Back/Front: dPad up/down");
+        telemetry.addData("Selected Alliance", alliance);
         telemetry.addData("Selected Start", startPosition);
-        telemetry.addLine("\nPress 'A/X to confirm and start building playlist");
+        telemetry.addLine("\nPress 'A to confirm and start building playlist");
         telemetry.update();
     }
 
